@@ -4,16 +4,30 @@ const InteractionService = require('../services/interactionService');
 const WhatsAppService = require('../services/whatsappService');
 
 function detectMessageLanguage(message) {
-  const spanishWords = ['hola', 'qué', 'cómo', 'dónde', 'cuándo', 'por', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'favor', 'sí', 'no', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me', 'te', 'le', 'nos', 'os', 'les', 'mi', 'tu', 'su', 'nuestro', 'vuestro'];
+  // Palabras comunes en ESPAÑOL
+  const spanishWords = ['hola', 'qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'no', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me gustaría', 'me', 'te', 'le', 'nos', 'los', 'las', 'del', 'de la', 'un', 'una', 'unos', 'unas', 'el', 'la', 'aquí', 'allá', 'aca', 'alla'];
   
+  // Palabras comunes en INGLÉS
+  const englishWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'a', 'an', 'and', 'or', 'but', 'for', 'with', 'about', 'tell', 'show', 'give', 'get'];
+
   const messageLower = message.toLowerCase();
-  const spanishCount = spanishWords.filter(word => messageLower.includes(word)).length;
   
-  // Si hay 1 o más palabras en español, es español
-  if (spanishCount >= 1) {
+  const spanishCount = spanishWords.filter(word => messageLower.includes(word)).length;
+  const englishCount = englishWords.filter(word => messageLower.includes(word)).length;
+  
+  console.log(`🔍 Language detection - Spanish: ${spanishCount}, English: ${englishCount}`);
+  
+  // Si hay más palabras en inglés, es inglés
+  if (englishCount > spanishCount) {
+    return 'EN';
+  }
+  
+  // Si hay más palabras en español, es español
+  if (spanishCount > englishCount) {
     return 'ES';
   }
   
+  // Default a inglés si hay empate
   return 'EN';
 }
 
