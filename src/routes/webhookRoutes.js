@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const WebhookController = require('../controllers/webhookController');
+const webhookController = require('../controllers/webhookController');
 
-// POST /webhook - Recibir mensajes de WhatsApp
-router.post('/', WebhookController.receiveMessage);
+// POST webhook para recibir mensajes
+router.post('/', webhookController.receiveMessage);
 
-// GET /webhook/status - Health check
-router.get('/status', WebhookController.webhookStatus);
+// GET para verificar status del webhook
+router.get('/status', webhookController.getWebhookStatus);
 
 module.exports = router;
