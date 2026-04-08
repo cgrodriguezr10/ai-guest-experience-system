@@ -85,38 +85,30 @@ class MessageClassifierService {
 
   /**
    * Clasifica si un mensaje es relevante al hotel
-   * @param {string} message - Mensaje del huésped
-   * @returns {object} { isRelevant: boolean, confidence: number, category: string }
    */
   static classifyMessage(message) {
     const messageLower = message.toLowerCase();
 
-    // Puntuación de relevancia
     let relevanceScore = 0;
     let irrelevanceScore = 0;
 
-    // Contar palabras clave relevantes
     this.hotelKeywords.forEach(keyword => {
       if (messageLower.includes(keyword)) {
         relevanceScore += 1;
       }
     });
 
-    // Contar palabras clave irrelevantes
     this.irrelevantKeywords.forEach(keyword => {
       if (messageLower.includes(keyword)) {
         irrelevanceScore += 2;
       }
     });
 
-    // Calcular score final
     const finalScore = relevanceScore - irrelevanceScore;
     const confidence = (relevanceScore / (relevanceScore + irrelevanceScore + 1)) * 100;
 
-    // Determinar si es relevante
     const isRelevant = relevanceScore > 0 && finalScore > -2;
 
-    // Categorizar
     let category = 'general';
     if (messageLower.includes('activity') || messageLower.includes('experiencia') || messageLower.includes('tour')) {
       category = 'activities';
@@ -168,6 +160,30 @@ What would you like to know?`,
     };
 
     return responses[language] || responses['EN'];
+  }
+
+  /**
+   * Detecta si el usuario quiere cambiar de idioma
+   */
+  static isLanguageChangeRequest(message) {
+    const messageLower = message.toLowerCase();
+    
+    const changeLanguageKeywords = [
+      'change language',
+      'cambiar idioma',
+      'cambiar lenguaje',
+      'change idioma',
+      'switch language',
+      'switch idioma',
+      'otro idioma',
+      'other language',
+      'english',
+      'español',
+      'español please',
+      'english please'
+    ];
+
+    return changeLanguageKeywords.some(keyword => messageLower.includes(keyword));
   }
 }
 

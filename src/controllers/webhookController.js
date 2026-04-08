@@ -39,9 +39,40 @@ exports.receiveMessage = async (req, res) => {
       console.log(`👤 New guest created: ${guest.id}`);
     }
 
-    // Detectar idioma
-    guest.language = detectMessageLanguage(Body);
+    // Detectar idioma SOLO si onboarding NO ha empezado
+    if (!OnboardingService.getProgress(guest.id)) {
+      guest.language = detectMessageLanguage(Body);
+    }
     console.log(`🗣️  Language: ${guest.language}`);
+
+    // ⭐ VERIFICAR SI USUARIO QUIERE CAMBIAR IDIOMA
+    if (guest.onboarding_completed && MessageClassifierService.isLanguageChangeRequest(Body)) {
+      console.log(`🔄 Language change requested by guest ${guest.id}`);
+      
+      // Resetear onboarding para que vuelva a elegir idioma
+      guest.onboarding_completed = false;
+      OnboardingService.guestProgress[guest.id] = null;
+      
+      // Iniciar desde pregunta de idioma
+      const response = OnboardingService.startOnboarding(guest);
+      
+      console.log(`💬 Response: ${response.message}`);
+
+      InteractionService.saveInteraction({
+        guest_id: guest.id,
+        incoming_message: Body,
+        outgoing_message: response.message,
+        message_type: 'language_change',
+        tokens_used: 0
+      });
+
+      await WhatsAppService.sendMessage(From, response.message);
+
+      return res.status(200).json({ 
+        success: true,
+        type: 'language_change'
+      });
+    }
 
     // ⭐ VERIFICAR SI ONBOARDING ESTÁ COMPLETO
     if (!guest.onboarding_completed) {
