@@ -4,30 +4,30 @@ const InteractionService = require('../services/interactionService');
 const WhatsAppService = require('../services/whatsappService');
 
 function detectMessageLanguage(message) {
-  // Palabras comunes en ESPAÑOL
-  const spanishWords = ['hola', 'qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'no', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me gustaría', 'me', 'te', 'le', 'nos', 'los', 'las', 'del', 'de la', 'un', 'una', 'unos', 'unas', 'el', 'la', 'aquí', 'allá', 'aca', 'alla'];
-  
-  // Palabras comunes en INGLÉS
-  const englishWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'a', 'an', 'and', 'or', 'but', 'for', 'with', 'about', 'tell', 'show', 'give', 'get'];
-
   const messageLower = message.toLowerCase();
   
-  const spanishCount = spanishWords.filter(word => messageLower.includes(word)).length;
-  const englishCount = englishWords.filter(word => messageLower.includes(word)).length;
+  // Palabras ÚNICAS del ESPAÑOL (que NO existen en inglés común)
+  const spanishOnlyWords = ['qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me gustaría', 'del', 'de la', 'un', 'una', 'unos', 'unas', 'aquí', 'allá', 'aca', 'alla', 'amo', 'amamos', 'hola', 'bueno', 'malo', 'casa', 'gato', 'perro', 'agua', 'pan', 'leche'];
   
-  console.log(`🔍 Language detection - Spanish: ${spanishCount}, English: ${englishCount}`);
+  // Palabras ÚNICAS del INGLÉS (que NO existen en español)
+  const englishOnlyWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'this', 'that', 'these', 'those', 'about', 'tell', 'show', 'give', 'get', 'very', 'good', 'bad', 'nice', 'friend', 'love', 'like', 'dog', 'cat', 'water', 'bread', 'milk'];
+
+  const spanishCount = spanishOnlyWords.filter(word => messageLower.includes(word)).length;
+  const englishCount = englishOnlyWords.filter(word => messageLower.includes(word)).length;
   
-  // Si hay más palabras en inglés, es inglés
-  if (englishCount > spanishCount) {
-    return 'EN';
-  }
+  console.log(`🔍 Language detection - Spanish words: ${spanishCount}, English words: ${englishCount}`);
   
-  // Si hay más palabras en español, es español
-  if (spanishCount > englishCount) {
+  // Si detecta palabras españolas, es español
+  if (spanishCount > 0) {
     return 'ES';
   }
   
-  // Default a inglés si hay empate
+  // Si detecta palabras en inglés, es inglés
+  if (englishCount > 0) {
+    return 'EN';
+  }
+  
+  // Default a inglés si no hay coincidencias claras
   return 'EN';
 }
 
