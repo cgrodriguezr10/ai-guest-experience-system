@@ -7,27 +7,24 @@ function detectMessageLanguage(message) {
   const messageLower = message.toLowerCase();
   
   // Palabras ÚNICAS del ESPAÑOL
-  const spanishOnlyWords = ['qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me gustaría', 'del', 'de la', 'un', 'una', 'unos', 'unas', 'aquí', 'allá', 'aca', 'alla', 'amo', 'amamos', 'hola', 'bueno', 'malo', 'casa', 'gato', 'perro', 'agua', 'pan', 'leche'];
+  const spanishOnlyWords = ['qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me gustaría', 'del', 'de la', 'un', 'una', 'unos', 'unas', 'aquí', 'allá', 'aca', 'alla'];
   
   // Palabras ÚNICAS del INGLÉS
-  const englishOnlyWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'this', 'that', 'these', 'those', 'about', 'tell', 'show', 'give', 'get', 'very', 'good', 'bad', 'nice', 'friend', 'love', 'like', 'dog', 'cat', 'water', 'bread', 'milk', 'thirsty'];
+  const englishOnlyWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'this', 'that', 'these', 'those', 'about', 'tell', 'show', 'give', 'get', 'very', 'good', 'bad', 'nice', 'friend', 'love', 'like', 'dog', 'cat', 'water', 'bread', 'milk', 'thirsty', 'im'];
 
   const spanishCount = spanishOnlyWords.filter(word => messageLower.includes(word)).length;
   const englishCount = englishOnlyWords.filter(word => messageLower.includes(word)).length;
   
   console.log(`🔍 Language detection - Spanish words: ${spanishCount}, English words: ${englishCount}`);
   
-  // Si detecta palabras españolas, es español
-  if (spanishCount > 0) {
+  if (spanishCount > englishCount) {
     return 'ES';
   }
   
-  // Si detecta palabras en inglés, es inglés
-  if (englishCount > 0) {
+  if (englishCount > spanishCount) {
     return 'EN';
   }
   
-  // Default a inglés si no hay coincidencias claras
   return 'EN';
 }
 
@@ -49,8 +46,8 @@ exports.receiveMessage = async (req, res) => {
     console.log(`👤 Guest (Mock): ${guest.id}`);
     console.log(`🗣️  Language: ${guest.language}`);
 
-    // Generate response using MOCK mode ONLY
-    const response = AIService.generateMockResponse(guest, Body);
+    // Generate response usando OpenAI REAL
+    const response = await AIService.generateResponse(guest, Body);
 
     console.log(`💬 Response: ${response.message}`);
 
