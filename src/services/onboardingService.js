@@ -1,8 +1,8 @@
 class OnboardingService {
   // Pasos del onboarding
   static steps = [
-    'ask_name',
     'ask_language',
+    'ask_name',
     'ask_trip_type',
     'ask_companion',
     'ask_dietary',
@@ -20,8 +20,8 @@ class OnboardingService {
     this.guestProgress[guest.id] = {
       step: 0,
       data: {
-        name: null,
         language: null,
+        name: null,
         trip_type: null,
         companion: null,
         dietary: null,
@@ -44,13 +44,12 @@ class OnboardingService {
     const currentStep = this.steps[progress.step];
 
     const questions = {
-      ask_name: {
-        EN: `Welcome to The Plaza Hotel! 🏨\n\nTo personalize your experience, I'd like to know you better.\n\nWhat is your name?`,
-        ES: `¡Bienvenido a The Plaza Hotel! 🏨\n\nPara personalizar tu experiencia, me gustaría conocerte mejor.\n\n¿Cuál es tu nombre?`
-      },
       ask_language: {
-        EN: `Nice to meet you, {name}! 👋\n\nWhich language do you prefer?\n1️⃣ English\n2️⃣ Español`,
-        ES: `¡Mucho gusto, {name}! 👋\n\n¿Qué idioma prefieres?\n1️⃣ English\n2️⃣ Español`
+        DEFAULT: `Welcome to The Plaza Hotel! 🏨\n\nWhich language do you prefer?\n1️⃣ English\n2️⃣ Español`
+      },
+      ask_name: {
+        EN: `Nice to meet you! 👋\n\nWhat is your name?`,
+        ES: `¡Mucho gusto! 👋\n\n¿Cuál es tu nombre?`
       },
       ask_trip_type: {
         EN: `Great! What type of trip is this?\n1️⃣ Business\n2️⃣ Leisure/Vacation\n3️⃣ Family\n4️⃣ Adventure`,
@@ -74,11 +73,16 @@ class OnboardingService {
       }
     };
 
-    const question = questions[currentStep][guest.language] || questions[currentStep]['EN'];
-    const formattedQuestion = question.replace('{name}', progress.data.name || 'Guest');
+    let question;
+    if (currentStep === 'ask_language') {
+      question = questions[currentStep]['DEFAULT'];
+    } else {
+      question = questions[currentStep][guest.language] || questions[currentStep]['EN'];
+      question = question.replace('{name}', progress.data.name || 'Guest');
+    }
 
     return {
-      message: formattedQuestion,
+      message: question,
       tokens: 0,
       isOnboarding: true,
       step: currentStep
@@ -95,19 +99,19 @@ class OnboardingService {
     }
 
     const currentStep = this.steps[progress.step];
-    const trimmedResponse = response.trim();
+    const trimmedResponse = response.trim().toLowerCase();
 
     // Procesar respuesta según el paso
     switch (currentStep) {
-      case 'ask_name':
-        progress.data.name = trimmedResponse;
+      case 'ask_language':
+        const langMap = { '1': 'EN', '2': 'ES', 'english': 'EN', 'español': 'ES', 'es': 'ES', 'en': 'EN' };
+        progress.data.language = langMap[trimmedResponse] || 'EN';
+        guest.language = progress.data.language;
         progress.step++;
         break;
 
-      case 'ask_language':
-        const langMap = { '1': 'EN', '2': 'ES', 'english': 'EN', 'español': 'ES', 'english': 'EN' };
-        progress.data.language = langMap[trimmedResponse.toLowerCase()] || guest.language;
-        guest.language = progress.data.language;
+      case 'ask_name':
+        progress.data.name = response.trim();
         progress.step++;
         break;
 
@@ -130,21 +134,19 @@ class OnboardingService {
         break;
 
       case 'ask_interests':
-        // Extraer intereses del mensaje
         const interests = [];
-        if (trimmedResponse.toLowerCase().includes('nature') || trimmedResponse.toLowerCase().includes('naturaleza')) interests.push('nature');
-        if (trimmedResponse.toLowerCase().includes('culture') || trimmedResponse.toLowerCase().includes('cultura')) interests.push('culture');
-        if (trimmedResponse.toLowerCase().includes('adventure') || trimmedResponse.toLowerCase().includes('aventura')) interests.push('adventure');
-        if (trimmedResponse.toLowerCase().includes('gastronomy') || trimmedResponse.toLowerCase().includes('gastronomía')) interests.push('gastronomy');
-        if (trimmedResponse.toLowerCase().includes('wellness') || trimmedResponse.toLowerCase().includes('bienestar')) interests.push('wellness');
-        if (trimmedResponse.toLowerCase().includes('shopping') || trimmedResponse.toLowerCase().includes('compras')) interests.push('shopping');
+        if (trimmedResponse.includes('nature') || trimmedResponse.includes('naturaleza') || trimmedResponse.includes('🏞️')) interests.push('nature');
+        if (trimmedResponse.includes('culture') || trimmedResponse.includes('cultura') || trimmedResponse.includes('🎭')) interests.push('culture');
+        if (trimmedResponse.includes('adventure') || trimmedResponse.includes('aventura') || trimmedResponse.includes('⛰️')) interests.push('adventure');
+        if (trimmedResponse.includes('gastronomy') || trimmedResponse.includes('gastronomía') || trimmedResponse.includes('🍽️')) interests.push('gastronomy');
+        if (trimmedResponse.includes('wellness') || trimmedResponse.includes('bienestar') || trimmedResponse.includes('🏥')) interests.push('wellness');
+        if (trimmedResponse.includes('shopping') || trimmedResponse.includes('compras') || trimmedResponse.includes('🛍️')) interests.push('shopping');
         
         progress.data.interests = interests.length > 0 ? interests : ['general'];
         progress.step++;
         break;
 
       case 'complete':
-        // Onboarding completo
         return this.completeOnboarding(guest, progress.data);
     }
 
@@ -156,7 +158,6 @@ class OnboardingService {
    * Marca onboarding como completado
    */
   static completeOnboarding(guest, profileData) {
-    // Actualizar perfil del guest
     guest.name = profileData.name;
     guest.language = profileData.language;
     guest.trip_type = profileData.trip_type;
@@ -165,11 +166,14 @@ class OnboardingService {
     guest.interests = profileData.interests;
     guest.onboarding_completed = true;
 
-    // Limpiar progreso
     delete this.guestProgress[guest.id];
 
+    const message = guest.language === 'ES' 
+      ? `¡Perfecto, ${profileData.name}! 🎉\n\nHe creado tu perfil y ahora puedo recomendarte experiencias personalizadas.\n\n¿Cómo puedo ayudarte hoy?`
+      : `Perfect, ${profileData.name}! 🎉\n\nI've created your profile and can now recommend experiences tailored to you.\n\nHow can I help you today?`;
+
     return {
-      message: `Perfect! Your profile is ready, ${profileData.name}! 🎉\n\nNow I can recommend personalized experiences for you.\n\nWhat would you like to explore?`,
+      message: message,
       tokens: 0,
       isOnboarding: false,
       profileComplete: true
@@ -181,13 +185,6 @@ class OnboardingService {
    */
   static isOnboardingComplete(guest) {
     return guest.onboarding_completed === true;
-  }
-
-  /**
-   * Obtiene el progreso del onboarding
-   */
-  static getProgress(guestId) {
-    return this.guestProgress[guestId] || null;
   }
 }
 
