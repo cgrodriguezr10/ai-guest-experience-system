@@ -15,6 +15,9 @@ exports.receiveMessage = async (req, res) => {
       guest = GuestService.createGuest(From);
     }
 
+    // Detectar idioma del mensaje actual
+    guest.language = detectMessageLanguage(Body);
+
     console.log(`👤 Guest (Mock): ${guest.id}`);
     console.log(`🗣️  Language: ${guest.language}`);
 
@@ -41,6 +44,20 @@ exports.receiveMessage = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+function detectMessageLanguage(message) {
+  const spanishWords = ['hola', 'qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'no', 'buenos', 'buenas', 'días', 'tardes', 'noches'];
+  
+  const messageLower = message.toLowerCase();
+  const spanishCount = spanishWords.filter(word => messageLower.includes(word)).length;
+  
+  // Si hay 2 o más palabras en español, es español
+  if (spanishCount >= 2) {
+    return 'ES';
+  }
+  
+  return 'EN';
+}
 
 exports.getWebhookStatus = (req, res) => {
   res.json({
