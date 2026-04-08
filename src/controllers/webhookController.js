@@ -6,11 +6,11 @@ const WhatsAppService = require('../services/whatsappService');
 function detectMessageLanguage(message) {
   const messageLower = message.toLowerCase();
   
-  // Palabras ÚNICAS del ESPAÑOL (que NO existen en inglés común)
+  // Palabras ÚNICAS del ESPAÑOL
   const spanishOnlyWords = ['qué', 'cómo', 'dónde', 'cuándo', 'por qué', 'tengo', 'hambre', 'actividades', 'experiencias', 'comida', 'restaurante', 'hotel', 'gracias', 'por favor', 'sí', 'buenos', 'buenas', 'días', 'tardes', 'noches', 'eres', 'estás', 'está', 'están', 'soy', 'somos', 'quisiera', 'me gustaría', 'del', 'de la', 'un', 'una', 'unos', 'unas', 'aquí', 'allá', 'aca', 'alla', 'amo', 'amamos', 'hola', 'bueno', 'malo', 'casa', 'gato', 'perro', 'agua', 'pan', 'leche'];
   
-  // Palabras ÚNICAS del INGLÉS (que NO existen en español)
-  const englishOnlyWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'this', 'that', 'these', 'those', 'about', 'tell', 'show', 'give', 'get', 'very', 'good', 'bad', 'nice', 'friend', 'love', 'like', 'dog', 'cat', 'water', 'bread', 'milk'];
+  // Palabras ÚNICAS del INGLÉS
+  const englishOnlyWords = ['what', 'where', 'when', 'why', 'how', 'hello', 'hi', 'hey', 'thank', 'please', 'help', 'available', 'activities', 'experience', 'restaurant', 'food', 'hungry', 'want', 'need', 'can', 'is', 'are', 'have', 'would', 'could', 'should', 'the', 'this', 'that', 'these', 'those', 'about', 'tell', 'show', 'give', 'get', 'very', 'good', 'bad', 'nice', 'friend', 'love', 'like', 'dog', 'cat', 'water', 'bread', 'milk', 'thirsty'];
 
   const spanishCount = spanishOnlyWords.filter(word => messageLower.includes(word)).length;
   const englishCount = englishOnlyWords.filter(word => messageLower.includes(word)).length;
