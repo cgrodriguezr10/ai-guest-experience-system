@@ -44,9 +44,10 @@ class OnboardingService {
     const currentStep = this.steps[progress.step];
 
     const questions = {
-      ask_language: {
-        DEFAULT: `Welcome to The Plaza Hotel! 🏨\n\nWhich language do you prefer?\n1️⃣ English\n2️⃣ Español`
-      },
+  ask_language: {
+    EN: `Welcome to The Plaza Hotel! 🏨\n\nWhich language do you prefer?\n1️⃣ English\n2️⃣ Español`,
+    ES: `¡Bienvenido a The Plaza Hotel! 🏨\n\n¿Qué idioma prefieres?\n1️⃣ English\n2️⃣ Español`
+  },
       ask_name: {
         EN: `Nice to meet you! 👋\n\nWhat is your name?`,
         ES: `¡Mucho gusto! 👋\n\n¿Cuál es tu nombre?`
@@ -74,12 +75,12 @@ class OnboardingService {
     };
 
     let question;
-    if (currentStep === 'ask_language') {
-      question = questions[currentStep]['DEFAULT'];
-    } else {
-      question = questions[currentStep][guest.language] || questions[currentStep]['EN'];
-      question = question.replace('{name}', progress.data.name || 'Guest');
-    }
+if (currentStep === 'ask_language') {
+  question = questions[currentStep][guest.language] || questions[currentStep]['EN'];
+} else {
+  question = questions[currentStep][guest.language] || questions[currentStep]['EN'];
+  question = question.replace('{name}', progress.data.name || 'Guest');
+}
 
     return {
       message: question,
