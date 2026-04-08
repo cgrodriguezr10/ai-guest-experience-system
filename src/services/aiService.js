@@ -5,7 +5,6 @@ const GastronomyService = require('./gastronomyService');
 class AIService {
   static async generateResponse(guest, incomingMessage) {
     try {
-      // SIEMPRE usar mock mode - nunca intentar OpenAI
       return this.generateMockResponse(guest, incomingMessage);
     } catch (error) {
       console.error('Error in generateResponse:', error);
@@ -21,7 +20,7 @@ class AIService {
     const isSpanish = guest.language === 'ES';
     const messageLower = message.toLowerCase();
 
-    const experienceKeywords = ['experience', 'activity', 'activities', 'things', 'do', 'go', 'visit', 'tour', 'experiencia', 'actividad', 'hacer', 'visitar'];
+    const experienceKeywords = ['experience', 'activity', 'activities', 'things', 'do', 'go', 'visit', 'tour', 'experiencia', 'actividad', 'actividades', 'hacer', 'visitar', 'tour', 'qué'];
     const hasExperienceKeywords = experienceKeywords.some(kw => messageLower.includes(kw));
 
     const foodKeywords = ['food', 'restaurant', 'eat', 'dinner', 'lunch', 'breakfast', 'dish', 'menu', 'comida', 'restaurante', 'comer', 'almuerzo', 'desayuno', 'plato', 'cena', 'menú', 'hambre'];
@@ -41,26 +40,30 @@ class AIService {
       };
     }
 
-    const mockResponses = {
-      EN: [
+    // Respuestas generales según idioma
+    if (isSpanish) {
+      const spanishResponses = [
+        `¡Hola ${guestName}! 👋 Gracias por comunicarte. ¿Cómo puedo ayudarte hoy?`,
+        `¡Hola ${guestName}! Nos da mucho placer tenerte en The Plaza Hotel.`,
+        `¡Buen día, ${guestName}! 🏨 ¿Hay algo especial que te gustaría experimentar?`
+      ];
+      const randomResponse = spanishResponses[Math.floor(Math.random() * spanishResponses.length)];
+      return {
+        message: randomResponse,
+        tokens: 50
+      };
+    } else {
+      const englishResponses = [
         `Hello ${guestName}! 👋 Thank you for reaching out. How can I help you today?`,
         `Hi ${guestName}! We're delighted to have you at The Plaza Hotel.`,
         `Good day, ${guestName}! 🏨 Is there anything special you'd like to experience?`
-      ],
-      ES: [
-        `¡Hola ${guestName}! 👋 Gracias por comunicarte. ¿Cómo puedo ayudarte?`,
-        `¡Hola ${guestName}! Nos da mucho placer tenerte en The Plaza Hotel.`,
-        `¡Buen día, ${guestName}! 🏨 ¿Hay algo especial que te gustaría?`
-      ]
-    };
-
-    const responses = isSpanish ? mockResponses.ES : mockResponses.EN;
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-    return {
-      message: randomResponse,
-      tokens: 50
-    };
+      ];
+      const randomResponse = englishResponses[Math.floor(Math.random() * englishResponses.length)];
+      return {
+        message: randomResponse,
+        tokens: 50
+      };
+    }
   }
 
   static generateFallbackResponse(guest) {
