@@ -5,7 +5,7 @@ const GastronomyService = require('./gastronomyService');
 class AIService {
   static async generateResponse(guest, incomingMessage) {
     try {
-      if (!environment.OPENAI.API_KEY || environment.OPENAI.API_KEY === 'sk-proj-xxx') {
+      if (!environment.OPENAI.API_KEY || environment.OPENAI.API_KEY === 'sk-proj-xxx' || process.env.NODE_ENV !== 'production') {
         return this.generateMockResponse(guest, incomingMessage);
       }
 
