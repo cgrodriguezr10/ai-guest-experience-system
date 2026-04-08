@@ -3,6 +3,7 @@ const GuestService = require('../services/guestService');
 const InteractionService = require('../services/interactionService');
 const WhatsAppService = require('../services/whatsappService');
 const MessageClassifierService = require('../services/messageClassifierService');
+const OnboardingService = require('../services/onboardingService');
 
 function detectMessageLanguage(message) {
   const messageLower = message.toLowerCase();
@@ -35,15 +36,44 @@ exports.receiveMessage = async (req, res) => {
     let guest = GuestService.getGuestByPhone(From);
     if (!guest) {
       guest = GuestService.createGuest(From);
+      console.log(`👤 New guest created: ${guest.id}`);
     }
 
     // Detectar idioma
     guest.language = detectMessageLanguage(Body);
-
-    console.log(`👤 Guest: ${guest.id}`);
     console.log(`🗣️  Language: ${guest.language}`);
 
-    // ⭐ FILTRAR MENSAJES IRRELEVANTES
+    // ⭐ VERIFICAR SI ONBOARDING ESTÁ COMPLETO
+    if (!guest.onboarding_completed) {
+      console.log(`⏳ Onboarding in progress for guest ${guest.id}`);
+      
+      // Procesar respuesta del onboarding
+      const response = OnboardingService.processOnboardingResponse(guest, Body);
+
+      console.log(`💬 Onboarding Response: ${response.message}`);
+
+      // Guardar interacción
+      InteractionService.saveInteraction({
+        guest_id: guest.id,
+        incoming_message: Body,
+        outgoing_message: response.message,
+        message_type: 'onboarding',
+        tokens_used: response.tokens
+      });
+
+      // Enviar respuesta
+      await WhatsAppService.sendMessage(From, response.message);
+
+      return res.status(200).json({ 
+        success: true,
+        type: 'onboarding',
+        step: response.step
+      });
+    }
+
+    console.log(`✅ Onboarding complete - Guest name: ${guest.name}`);
+
+    // ⭐ FILTRAR MENSAJES IRRELEVANTES (solo si onboarding está completo)
     const classification = MessageClassifierService.classifyMessage(Body);
     console.log(`🔍 Message Classification:`, classification);
 
