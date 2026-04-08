@@ -5,35 +5,8 @@ const GastronomyService = require('./gastronomyService');
 class AIService {
   static async generateResponse(guest, incomingMessage) {
     try {
-      // SIEMPRE usar mock mode si la key empieza con sk-proj-xxx
-if (environment.OPENAI.API_KEY.includes('sk-proj-xxx')) {
-  return this.generateMockResponse(guest, incomingMessage);
-}
-if (!environment.OPENAI.API_KEY) {
-  return this.generateMockResponse(guest, incomingMessage);
-}
-
-      const { OpenAI } = require('openai');
-      const openai = new OpenAI({
-        apiKey: environment.OPENAI.API_KEY
-      });
-
-      const systemPrompt = this.buildSystemPrompt(guest);
-
-      const response = await openai.chat.completions.create({
-        model: environment.OPENAI.MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: incomingMessage }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
-      });
-
-      return {
-        message: response.choices[0].message.content,
-        tokens: response.usage.total_tokens
-      };
+      // SIEMPRE usar mock mode - nunca intentar OpenAI
+      return this.generateMockResponse(guest, incomingMessage);
     } catch (error) {
       console.error('Error in generateResponse:', error);
       return {
@@ -41,21 +14,6 @@ if (!environment.OPENAI.API_KEY) {
         tokens: 0
       };
     }
-  }
-
-  static buildSystemPrompt(guest) {
-    const language = guest.language === 'ES' ? 'Spanish' : 'English';
-    const guestName = guest.name || 'Guest';
-
-    return `You are a luxury hotel concierge AI assistant at The Plaza Hotel. 
-Your role is to provide personalized, warm, and helpful responses to guests.
-
-Guest Information:
-- Name: ${guestName}
-- Language: ${language}
-- Trip Type: ${guest.trip_type || 'Unknown'}
-
-Respond in ${language}.`;
   }
 
   static generateMockResponse(guest, message) {
