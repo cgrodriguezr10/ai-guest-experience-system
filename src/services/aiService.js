@@ -23,7 +23,7 @@ class AIService {
     const experienceKeywords = ['experience', 'activity', 'activities', 'things', 'do', 'go', 'visit', 'tour', 'experiencia', 'actividad', 'actividades', 'hacer', 'visitar', 'qué'];
     const hasExperienceKeywords = experienceKeywords.some(kw => messageLower.includes(kw));
 
-    const foodKeywords = ['food', 'restaurant', 'eat', 'dinner', 'lunch', 'breakfast', 'dish', 'menu', 'comida', 'restaurante', 'comer', 'almuerzo', 'desayuno', 'plato', 'cena', 'menú', 'hambre', 'hungry'];
+    const foodKeywords = ['food', 'restaurant', 'eat', 'dinner', 'lunch', 'breakfast', 'dish', 'menu', 'hungry', 'comida', 'restaurante', 'comer', 'almuerzo', 'desayuno', 'plato', 'cena', 'menú', 'hambre'];
     const hasFoodKeywords = foodKeywords.some(kw => messageLower.includes(kw));
 
     if (hasExperienceKeywords) {
