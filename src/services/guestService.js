@@ -2,6 +2,14 @@ class GuestService {
   static guests = {};
   static guestCounter = 0;
 
+  static detectLanguage(phone) {
+    // Si el teléfono es de Colombia (57...), usar español
+    if (phone.includes('57')) {
+      return 'ES';
+    }
+    return 'EN';
+  }
+
   static getGuestByPhone(phone) {
     return Object.values(this.guests).find(guest => guest.phone === phone);
   }
@@ -12,7 +20,7 @@ class GuestService {
       id: this.guestCounter,
       phone: phone,
       name: null,
-      language: 'EN',
+      language: this.detectLanguage(phone),
       trip_type: null,
       dietary_preferences: null,
       created_at: new Date()
