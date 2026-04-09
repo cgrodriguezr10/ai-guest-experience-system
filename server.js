@@ -1,60 +1,83 @@
-#!/usr/bin/env node
-
+const express = require('express');
+const bodyParser = require('body-parser');
 const path = require('path');
-require('dotenv').config();
-
 const environment = require('./src/config/environment');
-const { initializeDatabase } = require('./src/config/database');
-const app = require('./src/app');
+const webhookRoutes = require('./src/routes/webhookRoutes');
+const guestRoutes = require('./src/routes/guestRoutes');
+const interactionRoutes = require('./src/routes/interactionRoutes');
 
-// ============================================
-// CONFIGURACIÓN INICIAL
-// ============================================
+const app = express();
+const PORT = environment.PORT || 3000;
 
-const PORT = environment.PORT;
-const NODE_ENV = environment.NODE_ENV;
+// Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-console.log('╔════════════════════════════════════════════════════════╗');
-console.log('║     AI GUEST EXPERIENCE SYSTEM - Starting Server       ║');
-console.log('╚════════════════════════════════════════════════════════╝');
-console.log(`\n⚙️  Environment: ${NODE_ENV}`);
+// ASCII Art Banner
+console.log(`
+╔════════════════════════════════════════════════════════╗
+║     AI GUEST EXPERIENCE SYSTEM - Starting Server       ║
+╚════════════════════════════════════════════════════════╝
+`);
+
+console.log(`⚙️  Environment: ${environment.NODE_ENV}`);
 console.log(`📍 Port: ${PORT}`);
-console.log(`🏨 Hotel: ${environment.HOTEL.DEFAULT_NAME}`);
-console.log(`🗣️  Language: ${environment.HOTEL.DEFAULT_LANGUAGE}`);
-console.log(`🕐 Timezone: ${environment.HOTEL.DEFAULT_TIMEZONE}\n`);
+console.log(`🏨 Hotel: The Plaza Hotel`);
+console.log(`🗣️  Language: ES`);
+console.log(`🕐 Timezone: America/Bogota`);
 
-// ============================================
-// INICIALIZAR BASE DE DATOS
-// ============================================
+// Database
+console.log(`📊 Initializing database...`);
+const database = require('./src/config/database');
+database.initialize();
+console.log(`✅ Database initialized (Mock mode - for development)`);
+console.log(`✅ Database connected`);
 
-const startServer = async () => {
-  try {
-    // Inicializar BD
-    console.log('📊 Initializing database...');
-    const db = await initializeDatabase();
-    console.log('✅ Database connected\n');
+// Routes
+app.use('/webhook', webhookRoutes);
+app.use('/api/guests', guestRoutes);
+app.use('/api/interactions', interactionRoutes);
 
-    // Iniciar servidor
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
-      console.log(`📋 API Info: http://localhost:${PORT}/api/info`);
-      console.log(`💚 Health Check: http://localhost:${PORT}/health`);
-      console.log('\n✨ Ready to receive WhatsApp messages!\n');
-    });
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'AI Guest Experience System'
+  });
+});
 
-    // Graceful shutdown
-    process.on('SIGINT', () => {
-      console.log('\n🛑 Shutting down gracefully...');
-      server.close(() => {
-        console.log('✅ Server closed');
-        process.exit(0);
-      });
-    });
+// API Info
+app.get('/api/info', (req, res) => {
+  res.json({
+    service: 'AI Guest Experience System',
+    version: '1.0.0',
+    endpoints: {
+      webhook: '/webhook',
+      health: '/health',
+      guests: '/api/guests',
+      interactions: '/api/interactions'
+    }
+  });
+});
 
-  } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    process.exit(1);
-  }
-};
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: {
+      message: 'Route not found',
+      statusCode: 404,
+      path: req.path
+    }
+  });
+});
 
-startServer();
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`📋 API Info: http://localhost:${PORT}/api/info`);
+  console.log(`💚 Health Check: http://localhost:${PORT}/health`);
+  console.log(`✨ Ready to receive WhatsApp messages!`);
+});
+
+module.exports = app;
