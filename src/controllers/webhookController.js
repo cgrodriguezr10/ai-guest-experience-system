@@ -90,12 +90,20 @@ exports.receiveMessage = async (req, res) => {
 
         console.log(`✅ Language changed to: ${newLanguage}`);
 
-        const confirmMessages = {
-          EN: `Language changed to English! 🇺🇸\n\nHow can I help you?`,
-          ES: `¡Idioma cambiado a español! 🇪🇸\n\n¿Cómo puedo ayudarte?`
-        };
-
-        const message = confirmMessages[newLanguage];
+        // Si está en onboarding, mostrar la pregunta actual en el nuevo idioma
+        let message;
+        if (!guest.onboarding_completed) {
+          const onboardingResponse = OnboardingService.getStepQuestion(guest);
+          message = onboardingResponse.message;
+          console.log(`📝 Onboarding question in new language: ${guest.language}`);
+        } else {
+          const confirmMessages = {
+            EN: `Language changed to English! 🇺🇸\n\nHow can I help you?`,
+            ES: `¡Idioma cambiado a español! 🇪🇸\n\n¿Cómo puedo ayudarte?`
+          };
+          message = confirmMessages[newLanguage];
+          console.log(`✅ Language changed to: ${newLanguage} (Onboarding complete)`);
+        }
 
         InteractionService.saveInteraction({
           guest_id: guest.id,
