@@ -1,34 +1,50 @@
+const Database = require('../config/database');
+
 class InteractionService {
-  static interactions = [];
-  static interactionCounter = 0;
-
-  static saveInteraction(data) {
-    this.interactionCounter++;
-    const interaction = {
-      id: this.interactionCounter,
-      guest_id: data.guest_id,
-      incoming_message: data.incoming_message,
-      outgoing_message: data.outgoing_message,
-      message_type: data.message_type || 'user_question',
-      sentiment: data.sentiment || 'neutral',
-      tokens_used: data.tokens_used || 0,
-      created_at: new Date()
-    };
-    this.interactions.push(interaction);
-    console.log(`📝 Interaction saved: ${interaction.id}`);
-    return interaction;
+  static async saveInteraction(data) {
+    try {
+      const result = await Database.query(
+        `INSERT INTO interactions (guest_id, incoming_message, outgoing_message, message_type, category, tokens_used) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`,
+        [
+          data.guest_id,
+          data.incoming_message,
+          data.outgoing_message,
+          data.message_type || 'user_question',
+          data.category || 'general',
+          data.tokens_used || 0
+        ]
+      );
+      console.log(`📝 Interaction saved: ${result.rows[0].id}`);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error saving interaction:', error);
+      return null;
+    }
   }
 
-  static getInteractionsByGuest(guest_id) {
-    return this.interactions.filter(i => i.guest_id === guest_id);
+  static async getInteractionsByGuest(guestId) {
+    try {
+      const result = await Database.query(
+        'SELECT * FROM interactions WHERE guest_id = $1 ORDER BY created_at DESC',
+        [guestId]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching interactions:', error);
+      return [];
+    }
   }
 
-  static getAllInteractions() {
-    return this.interactions;
-  }
-
-  static getInteractionById(id) {
-    return this.interactions.find(i => i.id === id) || null;
+  static async getAllInteractions() {
+    try {
+      const result = await Database.query('SELECT * FROM interactions ORDER BY created_at DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching all interactions:', error);
+      return [];
+    }
   }
 }
 
