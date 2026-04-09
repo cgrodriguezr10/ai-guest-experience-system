@@ -1,45 +1,38 @@
-const environment = require('./environment');
+class Database {
+  static initialized = false;
 
-let db = null;
+  static initialize() {
+    if (this.initialized) {
+      return;
+    }
 
-const initializeDatabase = async () => {
-  if (db) return db;
-
-  try {
-    // Mock database para desarrollo
-    console.log('✅ Database initialized (Mock mode - for development)');
+    console.log('📊 Initializing database...');
     
-    db = {
-      connected: true,
-      type: 'mock'
+    // Mock database initialization
+    this.data = {
+      hotels: [],
+      guests: [],
+      interactions: []
     };
 
-    return db;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    throw error;
+    this.initialized = true;
+    console.log('✅ Database initialized (Mock mode - for development)');
+    console.log('✅ Database connected');
+
+    return this.data;
   }
-};
 
-// Mock queries - para desarrollo sin necesidad de base de datos real
-const query = async (sql, params = []) => {
-  console.log(`📝 Query: ${sql}`);
-  return [];
-};
+  static getData() {
+    return this.data;
+  }
 
-const queryOne = async (sql, params = []) => {
-  console.log(`📝 Query: ${sql}`);
-  return null;
-};
+  static reset() {
+    this.data = {
+      hotels: [],
+      guests: [],
+      interactions: []
+    };
+  }
+}
 
-const execute = async (sql, params = []) => {
-  console.log(`📝 Execute: ${sql}`);
-  return { success: true };
-};
-
-module.exports = {
-  initializeDatabase,
-  query,
-  queryOne,
-  execute,
-};
+module.exports = Database;
