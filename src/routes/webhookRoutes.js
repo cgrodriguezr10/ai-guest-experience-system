@@ -10,29 +10,17 @@ router.post('/', webhookController.receiveMessage);
 // GET para verificar status del webhook
 router.get('/status', webhookController.getWebhookStatus);
 
-// GET para resetear un guest (solo desarrollo)
-router.get('/reset/:guestId', (req, res) => {
-  const guestId = parseInt(req.params.guestId);
-  const guest = GuestService.getGuestById(guestId);
-
-  if (!guest) {
-    return res.status(404).json({ error: 'Guest not found' });
-  }
-
-  // Resetear onboarding
-  OnboardingService.guestProgress[guestId] = null;
-  guest.onboarding_completed = false;
-  guest.name = null;
-  guest.trip_type = null;
-  guest.companion = null;
-  guest.dietary = null;
-  guest.interests = [];
-  guest.waiting_for_language_change = false;
+// GET para resetear todos los guests (solo desarrollo)
+router.get('/reset-all', (req, res) => {
+  // Limpiar todos los guests y onboarding
+  GuestService.guests = {};
+  GuestService.guestCounter = 0;
+  OnboardingService.guestProgress = {};
 
   res.json({
     success: true,
-    message: `Guest ${guestId} reset successfully`,
-    guest: guest
+    message: 'All guests reset successfully',
+    guests_cleared: Object.keys(GuestService.guests).length
   });
 });
 
