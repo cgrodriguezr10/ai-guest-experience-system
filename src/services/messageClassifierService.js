@@ -164,27 +164,35 @@ What would you like to know?`,
 
   /**
    * Detecta si el usuario quiere cambiar de idioma
+   * MÁS FLEXIBLE: reconoce cualquier combinación de "cambio/change/idioma/lenguage/language"
    */
   static isLanguageChangeRequest(message) {
     const messageLower = message.toLowerCase();
     
-    const changeLanguageKeywords = [
-      'change language',
-      'change lenguage',
-      'cambiar idioma',
-      'cambiar lenguaje',
-      'change idioma',
-      'switch language',
-      'switch idioma',
-      'otro idioma',
-      'other language',
-      'english',
-      'español',
-      'español please',
-      'english please'
-    ];
+    // Palabras clave para cambio de idioma
+    const changeWords = ['change', 'cambiar', 'switch', 'cambio'];
+    const languageWords = ['language', 'idioma', 'lenguage', 'lenguaje', 'idiomas', 'languages', 'english', 'español', 'spanish'];
+    
+    // Verificar si contiene al menos una palabra de cambio y una de idioma
+    const hasChangeWord = changeWords.some(word => messageLower.includes(word));
+    const hasLanguageWord = languageWords.some(word => messageLower.includes(word));
+    
+    // También reconoce solo palabras de idioma si están solas
+    if (hasChangeWord && hasLanguageWord) {
+      return true;
+    }
+    
+    // Si solo menciona idioma/lenguage/language/english/español
+    const languageOnlyKeywords = ['idioma', 'lenguage', 'lenguaje', 'english', 'español', 'spanish'];
+    const isLanguageOnly = languageOnlyKeywords.some(word => 
+      messageLower.includes(word) && messageLower.length < 30
+    );
+    
+    if (isLanguageOnly) {
+      return true;
+    }
 
-    return changeLanguageKeywords.some(keyword => messageLower.includes(keyword));
+    return false;
   }
 }
 
