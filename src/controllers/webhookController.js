@@ -33,14 +33,15 @@ exports.receiveMessage = async (req, res) => {
     console.log('📨 Received webhook:', { From, Body });
 
     // Get or create guest
-    let guest = GuestService.getGuestByPhone(From);
+    let guest = await GuestService.getGuestByPhone(From);
     if (!guest) {
-      guest = GuestService.createGuest(From);
+      guest = await GuestService.createGuest(From);
       console.log(`👤 New guest created: ${guest.id}`);
     }
 
     // Detectar idioma SOLO si onboarding NO ha empezado
-    if (!OnboardingService.getProgress(guest.id)) {
+    // Una vez que el usuario elige idioma, se bloquea hasta completar onboarding
+    if (!OnboardingService.getProgress(guest.id) && !guest.onboarding_completed) {
       guest.language = detectMessageLanguage(Body);
     }
     console.log(`🗣️  Language: ${guest.language}`);
@@ -49,7 +50,6 @@ exports.receiveMessage = async (req, res) => {
     if (MessageClassifierService.isLanguageChangeRequest(Body)) {
       console.log(`🔄 Language change requested by guest ${guest.id}`);
       
-      // Mostrar opciones de idioma SIN resetear el perfil
       const langChangeResponse = {
         EN: `Which language would you prefer?\n1️⃣ English\n2️⃣ Español`,
         ES: `¿Qué idioma prefieres?\n1️⃣ English\n2️⃣ Español`
@@ -59,7 +59,7 @@ exports.receiveMessage = async (req, res) => {
       
       console.log(`💬 Language Change Options: ${message}`);
 
-      InteractionService.saveInteraction({
+      await InteractionService.saveInteraction({
         guest_id: guest.id,
         incoming_message: Body,
         outgoing_message: message,
@@ -69,7 +69,6 @@ exports.receiveMessage = async (req, res) => {
 
       await WhatsAppService.sendMessage(From, message);
 
-      // Marcar que espera respuesta de cambio de idioma
       guest.waiting_for_language_change = true;
 
       return res.status(200).json({ 
@@ -90,7 +89,6 @@ exports.receiveMessage = async (req, res) => {
 
         console.log(`✅ Language changed to: ${newLanguage}`);
 
-        // Si está en onboarding, mostrar la pregunta actual en el nuevo idioma
         let message;
         if (!guest.onboarding_completed) {
           const onboardingResponse = OnboardingService.getStepQuestion(guest);
@@ -105,7 +103,7 @@ exports.receiveMessage = async (req, res) => {
           console.log(`✅ Language changed to: ${newLanguage} (Onboarding complete)`);
         }
 
-        InteractionService.saveInteraction({
+        await InteractionService.saveInteraction({
           guest_id: guest.id,
           incoming_message: Body,
           outgoing_message: message,
@@ -121,7 +119,6 @@ exports.receiveMessage = async (req, res) => {
           new_language: newLanguage
         });
       } else {
-        // Respuesta inválida, volver a pedir
         const retryMessages = {
           EN: `Please select a valid option:\n1️⃣ English\n2️⃣ Español`,
           ES: `Por favor selecciona una opción válida:\n1️⃣ English\n2️⃣ Español`
@@ -142,13 +139,11 @@ exports.receiveMessage = async (req, res) => {
     if (!guest.onboarding_completed) {
       console.log(`⏳ Onboarding in progress for guest ${guest.id}`);
       
-      // Procesar respuesta del onboarding
       const response = OnboardingService.processOnboardingResponse(guest, Body);
 
       console.log(`💬 Onboarding Response: ${response.message}`);
 
-      // Guardar interacción
-      InteractionService.saveInteraction({
+      await InteractionService.saveInteraction({
         guest_id: guest.id,
         incoming_message: Body,
         outgoing_message: response.message,
@@ -156,8 +151,18 @@ exports.receiveMessage = async (req, res) => {
         tokens_used: response.tokens
       });
 
-      // Enviar respuesta
       await WhatsAppService.sendMessage(From, response.message);
+
+      // Guardar cambios del guest en BD
+      await GuestService.updateGuest(guest.id, {
+        name: guest.name,
+        language: guest.language,
+        room_number: guest.room_number,
+        trip_type: guest.trip_type,
+        companion: guest.companion,
+        dietary_preferences: guest.dietary,
+        onboarding_completed: guest.onboarding_completed
+      });
 
       return res.status(200).json({ 
         success: true,
@@ -168,14 +173,13 @@ exports.receiveMessage = async (req, res) => {
 
     console.log(`✅ Onboarding complete - Guest name: ${guest.name}`);
 
-    // ⭐ FILTRAR MENSAJES IRRELEVANTES (solo si onboarding está completo)
+    // ⭐ FILTRAR MENSAJES IRRELEVANTES
     const classification = MessageClassifierService.classifyMessage(Body);
     console.log(`🔍 Message Classification:`, classification);
 
     let response;
 
     if (!classification.isRelevant) {
-      // Mensaje irrelevante - respuesta genérica
       console.log(`⚠️  Message not relevant to hotel services`);
       response = {
         message: MessageClassifierService.getOffTopicResponse(guest.language),
@@ -183,7 +187,6 @@ exports.receiveMessage = async (req, res) => {
         isOffTopic: true
       };
     } else {
-      // Mensaje relevante - procesar con OpenAI
       console.log(`✅ Message relevant - Processing with OpenAI`);
       response = await AIService.generateResponse(guest, Body);
       response.isOffTopic = false;
@@ -191,8 +194,7 @@ exports.receiveMessage = async (req, res) => {
 
     console.log(`💬 Response: ${response.message}`);
 
-    // Guardar interacción
-    InteractionService.saveInteraction({
+    await InteractionService.saveInteraction({
       guest_id: guest.id,
       incoming_message: Body,
       outgoing_message: response.message,
@@ -201,7 +203,6 @@ exports.receiveMessage = async (req, res) => {
       category: classification.category
     });
 
-    // Enviar respuesta
     await WhatsAppService.sendMessage(From, response.message);
 
     res.status(200).json({ 
