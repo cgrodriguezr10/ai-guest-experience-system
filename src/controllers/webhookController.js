@@ -45,33 +45,89 @@ exports.receiveMessage = async (req, res) => {
     }
     console.log(`🗣️  Language: ${guest.language}`);
 
-    // ⭐ VERIFICAR SI USUARIO QUIERE CAMBIAR IDIOMA
-    if (guest.onboarding_completed && MessageClassifierService.isLanguageChangeRequest(Body)) {
+    // ⭐ VERIFICAR SI USUARIO QUIERE CAMBIAR IDIOMA (EN CUALQUIER MOMENTO)
+    if (MessageClassifierService.isLanguageChangeRequest(Body)) {
       console.log(`🔄 Language change requested by guest ${guest.id}`);
       
-      // Resetear onboarding para que vuelva a elegir idioma
-      guest.onboarding_completed = false;
-      OnboardingService.guestProgress[guest.id] = null;
+      // Mostrar opciones de idioma SIN resetear el perfil
+      const langChangeResponse = {
+        EN: `Which language would you prefer?\n1️⃣ English\n2️⃣ Español`,
+        ES: `¿Qué idioma prefieres?\n1️⃣ English\n2️⃣ Español`
+      };
+
+      const message = langChangeResponse[guest.language] || langChangeResponse['EN'];
       
-      // Iniciar desde pregunta de idioma
-      const response = OnboardingService.startOnboarding(guest);
-      
-      console.log(`💬 Response: ${response.message}`);
+      console.log(`💬 Language Change Options: ${message}`);
 
       InteractionService.saveInteraction({
         guest_id: guest.id,
         incoming_message: Body,
-        outgoing_message: response.message,
-        message_type: 'language_change',
+        outgoing_message: message,
+        message_type: 'language_change_request',
         tokens_used: 0
       });
 
-      await WhatsAppService.sendMessage(From, response.message);
+      await WhatsAppService.sendMessage(From, message);
+
+      // Marcar que espera respuesta de cambio de idioma
+      guest.waiting_for_language_change = true;
 
       return res.status(200).json({ 
         success: true,
-        type: 'language_change'
+        type: 'language_change_request'
       });
+    }
+
+    // ⭐ SI ESTÁ ESPERANDO RESPUESTA DE CAMBIO DE IDIOMA
+    if (guest.waiting_for_language_change) {
+      const trimmedResponse = Body.trim().toLowerCase();
+      const langMap = { '1': 'EN', '2': 'ES' };
+      const newLanguage = langMap[trimmedResponse];
+
+      if (newLanguage) {
+        guest.language = newLanguage;
+        guest.waiting_for_language_change = false;
+
+        console.log(`✅ Language changed to: ${newLanguage}`);
+
+        const confirmMessages = {
+          EN: `Language changed to English! 🇺🇸\n\nHow can I help you?`,
+          ES: `¡Idioma cambiado a español! 🇪🇸\n\n¿Cómo puedo ayudarte?`
+        };
+
+        const message = confirmMessages[newLanguage];
+
+        InteractionService.saveInteraction({
+          guest_id: guest.id,
+          incoming_message: Body,
+          outgoing_message: message,
+          message_type: 'language_changed',
+          tokens_used: 0
+        });
+
+        await WhatsAppService.sendMessage(From, message);
+
+        return res.status(200).json({ 
+          success: true,
+          type: 'language_changed',
+          new_language: newLanguage
+        });
+      } else {
+        // Respuesta inválida, volver a pedir
+        const retryMessages = {
+          EN: `Please select a valid option:\n1️⃣ English\n2️⃣ Español`,
+          ES: `Por favor selecciona una opción válida:\n1️⃣ English\n2️⃣ Español`
+        };
+
+        const message = retryMessages[guest.language];
+
+        await WhatsAppService.sendMessage(From, message);
+
+        return res.status(200).json({ 
+          success: true,
+          type: 'language_change_invalid'
+        });
+      }
     }
 
     // ⭐ VERIFICAR SI ONBOARDING ESTÁ COMPLETO
