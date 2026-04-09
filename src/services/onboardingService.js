@@ -3,6 +3,9 @@ class OnboardingService {
   static steps = [
     'ask_language',
     'ask_name',
+    'confirm_name',
+    'ask_room_number',
+    'confirm_room_number',
     'ask_trip_type',
     'ask_companion',
     'ask_dietary',
@@ -22,6 +25,7 @@ class OnboardingService {
       data: {
         language: null,
         name: null,
+        room_number: null,
         trip_type: null,
         companion: null,
         dietary: null,
@@ -52,6 +56,18 @@ class OnboardingService {
         EN: `Nice to meet you! 👋\n\nWhat is your name?`,
         ES: `¡Mucho gusto! 👋\n\n¿Cuál es tu nombre?`
       },
+      confirm_name: {
+        EN: `Just to confirm, your name is: {name}\n\nIs this correct?\n1️⃣ Yes\n2️⃣ No, let me correct it`,
+        ES: `Solo para confirmar, tu nombre es: {name}\n\n¿Es correcto?\n1️⃣ Sí\n2️⃣ No, déjame corregirlo`
+      },
+      ask_room_number: {
+        EN: `Perfect! 👍\n\nWhich room are you staying in? (101-110)`,
+        ES: `¡Perfecto! 👍\n\n¿En qué habitación estás? (101-110)`
+      },
+      confirm_room_number: {
+        EN: `Just to confirm, your room number is: {room}\n\nIs this correct?\n1️⃣ Yes\n2️⃣ No, let me correct it`,
+        ES: `Solo para confirmar, tu habitación es: {room}\n\n¿Es correcto?\n1️⃣ Sí\n2️⃣ No, déjame corregirlo`
+      },
       ask_trip_type: {
         EN: `Great! What type of trip is this?\n1️⃣ Business\n2️⃣ Leisure/Vacation\n3️⃣ Family\n4️⃣ Adventure`,
         ES: `¡Excelente! ¿Qué tipo de viaje es este?\n1️⃣ Negocios\n2️⃣ Ocio/Vacaciones\n3️⃣ Familia\n4️⃣ Aventura`
@@ -69,8 +85,8 @@ class OnboardingService {
         ES: `¿Cuáles son tus intereses? (Puedes mencionar varios)\n🏞️ Naturaleza\n🎭 Cultura\n⛰️ Aventura\n🍽️ Gastronomía\n🏥 Bienestar/Spa\n🛍️ Shopping`
       },
       complete: {
-        EN: `Perfect, {name}! 🎉\n\nI've created your profile and can now recommend experiences tailored to you.\n\nHow can I help you today?`,
-        ES: `¡Perfecto, {name}! 🎉\n\nHe creado tu perfil y ahora puedo recomendarte experiencias personalizadas.\n\n¿Cómo puedo ayudarte hoy?`
+        EN: `Perfect, {name}! 🎉\n\nYour profile is complete. Room: {room}\n\nHow can I help you today?`,
+        ES: `¡Perfecto, {name}! 🎉\n\nTu perfil está completo. Habitación: {room}\n\n¿Cómo puedo ayudarte hoy?`
       }
     };
 
@@ -80,6 +96,7 @@ class OnboardingService {
     } else {
       question = questions[currentStep][guest.language] || questions[currentStep]['EN'];
       question = question.replace('{name}', progress.data.name || 'Guest');
+      question = question.replace('{room}', progress.data.room_number || 'N/A');
     }
 
     return {
@@ -109,7 +126,6 @@ class OnboardingService {
         const selectedLang = langMap[trimmedResponse];
         
         if (!selectedLang) {
-          // Respuesta inválida - pedir de nuevo
           const invalidLangMessage = {
             EN: `Please select a valid option:\n1️⃣ English\n2️⃣ Español`,
             ES: `Por favor selecciona una opción válida:\n1️⃣ English\n2️⃣ Español`
@@ -132,12 +148,76 @@ class OnboardingService {
         progress.step++;
         break;
 
+      case 'confirm_name':
+        if (trimmedResponse === '1' || trimmedResponse === 'yes' || trimmedResponse === 'sí' || trimmedResponse === 'si') {
+          // Nombre confirmado
+          progress.step++;
+        } else if (trimmedResponse === '2' || trimmedResponse === 'no') {
+          // Volver a pedir nombre
+          progress.step = 1; // Volver a ask_name
+          return this.getStepQuestion(guest);
+        } else {
+          const invalidConfirmMessage = {
+            EN: `Please select a valid option:\n1️⃣ Yes\n2️⃣ No, let me correct it`,
+            ES: `Por favor selecciona una opción válida:\n1️⃣ Sí\n2️⃣ No, déjame corregirlo`
+          };
+          return {
+            message: invalidConfirmMessage[guest.language] || invalidConfirmMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        break;
+
+      case 'ask_room_number':
+        const roomNum = trimmedResponse;
+        const roomRegex = /^(10[1-9]|110)$/;
+        
+        if (!roomRegex.test(roomNum)) {
+          const invalidRoomMessage = {
+            EN: `Please enter a valid room number (101-110)`,
+            ES: `Por favor ingresa un número de habitación válido (101-110)`
+          };
+          return {
+            message: invalidRoomMessage[guest.language] || invalidRoomMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        
+        progress.data.room_number = roomNum;
+        progress.step++;
+        break;
+
+      case 'confirm_room_number':
+        if (trimmedResponse === '1' || trimmedResponse === 'yes' || trimmedResponse === 'sí' || trimmedResponse === 'si') {
+          // Habitación confirmada
+          progress.step++;
+        } else if (trimmedResponse === '2' || trimmedResponse === 'no') {
+          // Volver a pedir habitación
+          progress.step = 3; // Volver a ask_room_number
+          return this.getStepQuestion(guest);
+        } else {
+          const invalidConfirmMessage = {
+            EN: `Please select a valid option:\n1️⃣ Yes\n2️⃣ No, let me correct it`,
+            ES: `Por favor selecciona una opción válida:\n1️⃣ Sí\n2️⃣ No, déjame corregirlo`
+          };
+          return {
+            message: invalidConfirmMessage[guest.language] || invalidConfirmMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        break;
+
       case 'ask_trip_type':
         const tripMap = { '1': 'Negocios', '2': 'Ocio', '3': 'Familia', '4': 'Aventura' };
         const selectedTrip = tripMap[trimmedResponse];
         
         if (!selectedTrip) {
-          // Respuesta inválida - pedir de nuevo
           const invalidTripMessage = {
             EN: `Please select a valid option:\n1️⃣ Business\n2️⃣ Leisure/Vacation\n3️⃣ Family\n4️⃣ Adventure`,
             ES: `Por favor selecciona una opción válida:\n1️⃣ Negocios\n2️⃣ Ocio/Vacaciones\n3️⃣ Familia\n4️⃣ Aventura`
@@ -159,7 +239,6 @@ class OnboardingService {
         const selectedCompanion = companionMap[trimmedResponse];
         
         if (!selectedCompanion) {
-          // Respuesta inválida - pedir de nuevo
           const invalidCompanionMessage = {
             EN: `Please select a valid option:\n1️⃣ Solo\n2️⃣ Partner/Spouse\n3️⃣ Family\n4️⃣ Friends\n5️⃣ Group`,
             ES: `Por favor selecciona una opción válida:\n1️⃣ Solo\n2️⃣ Pareja\n3️⃣ Familia\n4️⃣ Amigos\n5️⃣ Grupo`
@@ -181,7 +260,6 @@ class OnboardingService {
         const selectedDietary = dietaryMap[trimmedResponse];
         
         if (!selectedDietary) {
-          // Respuesta inválida - pedir de nuevo
           const invalidDietaryMessage = {
             EN: `Please select a valid option:\n1️⃣ None\n2️⃣ Vegetarian\n3️⃣ Vegan\n4️⃣ Gluten-free\n5️⃣ Other`,
             ES: `Por favor selecciona una opción válida:\n1️⃣ Ninguna\n2️⃣ Vegetariano\n3️⃣ Vegano\n4️⃣ Sin gluten\n5️⃣ Otra`
@@ -225,6 +303,7 @@ class OnboardingService {
   static completeOnboarding(guest, profileData) {
     guest.name = profileData.name;
     guest.language = profileData.language;
+    guest.room_number = profileData.room_number;
     guest.trip_type = profileData.trip_type;
     guest.companion = profileData.companion;
     guest.dietary = profileData.dietary;
@@ -234,8 +313,8 @@ class OnboardingService {
     delete this.guestProgress[guest.id];
 
     const message = guest.language === 'ES' 
-      ? `¡Perfecto, ${profileData.name}! 🎉\n\nHe creado tu perfil y ahora puedo recomendarte experiencias personalizadas.\n\n¿Cómo puedo ayudarte hoy?`
-      : `Perfect, ${profileData.name}! 🎉\n\nI've created your profile and can now recommend experiences tailored to you.\n\nHow can I help you today?`;
+      ? `¡Perfecto, ${profileData.name}! 🎉\n\nTu perfil está completo. Habitación: ${profileData.room_number}\n\n¿Cómo puedo ayudarte hoy?`
+      : `Perfect, ${profileData.name}! 🎉\n\nYour profile is complete. Room: ${profileData.room_number}\n\nHow can I help you today?`;
 
     return {
       message: message,
