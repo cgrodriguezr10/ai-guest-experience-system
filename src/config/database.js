@@ -47,7 +47,7 @@ class Database {
       // Tabla de huéspedes
       `CREATE TABLE IF NOT EXISTS guests (
         id SERIAL PRIMARY KEY,
-        phone VARCHAR(20) UNIQUE NOT NULL,
+        phone VARCHAR(50) UNIQUE NOT NULL,
         hotel_id INT REFERENCES hotels(id),
         name VARCHAR(255),
         language VARCHAR(10),
