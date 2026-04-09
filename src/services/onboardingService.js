@@ -106,8 +106,24 @@ class OnboardingService {
     switch (currentStep) {
       case 'ask_language':
         const langMap = { '1': 'EN', '2': 'ES', 'english': 'EN', 'español': 'ES', 'es': 'ES', 'en': 'EN' };
-        progress.data.language = langMap[trimmedResponse] || 'EN';
-        guest.language = progress.data.language;
+        const selectedLang = langMap[trimmedResponse];
+        
+        if (!selectedLang) {
+          // Respuesta inválida - pedir de nuevo
+          const invalidLangMessage = {
+            EN: `Please select a valid option:\n1️⃣ English\n2️⃣ Español`,
+            ES: `Por favor selecciona una opción válida:\n1️⃣ English\n2️⃣ Español`
+          };
+          return {
+            message: invalidLangMessage[guest.language] || invalidLangMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        
+        progress.data.language = selectedLang;
+        guest.language = selectedLang;
         progress.step++;
         break;
 
@@ -118,19 +134,67 @@ class OnboardingService {
 
       case 'ask_trip_type':
         const tripMap = { '1': 'Negocios', '2': 'Ocio', '3': 'Familia', '4': 'Aventura' };
-        progress.data.trip_type = tripMap[trimmedResponse] || 'Ocio';
+        const selectedTrip = tripMap[trimmedResponse];
+        
+        if (!selectedTrip) {
+          // Respuesta inválida - pedir de nuevo
+          const invalidTripMessage = {
+            EN: `Please select a valid option:\n1️⃣ Business\n2️⃣ Leisure/Vacation\n3️⃣ Family\n4️⃣ Adventure`,
+            ES: `Por favor selecciona una opción válida:\n1️⃣ Negocios\n2️⃣ Ocio/Vacaciones\n3️⃣ Familia\n4️⃣ Aventura`
+          };
+          return {
+            message: invalidTripMessage[guest.language] || invalidTripMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        
+        progress.data.trip_type = selectedTrip;
         progress.step++;
         break;
 
       case 'ask_companion':
         const companionMap = { '1': 'Solo', '2': 'Pareja', '3': 'Familia', '4': 'Amigos', '5': 'Grupo' };
-        progress.data.companion = companionMap[trimmedResponse] || 'Solo';
+        const selectedCompanion = companionMap[trimmedResponse];
+        
+        if (!selectedCompanion) {
+          // Respuesta inválida - pedir de nuevo
+          const invalidCompanionMessage = {
+            EN: `Please select a valid option:\n1️⃣ Solo\n2️⃣ Partner/Spouse\n3️⃣ Family\n4️⃣ Friends\n5️⃣ Group`,
+            ES: `Por favor selecciona una opción válida:\n1️⃣ Solo\n2️⃣ Pareja\n3️⃣ Familia\n4️⃣ Amigos\n5️⃣ Grupo`
+          };
+          return {
+            message: invalidCompanionMessage[guest.language] || invalidCompanionMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        
+        progress.data.companion = selectedCompanion;
         progress.step++;
         break;
 
       case 'ask_dietary':
         const dietaryMap = { '1': 'Ninguna', '2': 'Vegetariano', '3': 'Vegano', '4': 'Sin gluten', '5': 'Otra' };
-        progress.data.dietary = dietaryMap[trimmedResponse] || 'Ninguna';
+        const selectedDietary = dietaryMap[trimmedResponse];
+        
+        if (!selectedDietary) {
+          // Respuesta inválida - pedir de nuevo
+          const invalidDietaryMessage = {
+            EN: `Please select a valid option:\n1️⃣ None\n2️⃣ Vegetarian\n3️⃣ Vegan\n4️⃣ Gluten-free\n5️⃣ Other`,
+            ES: `Por favor selecciona una opción válida:\n1️⃣ Ninguna\n2️⃣ Vegetariano\n3️⃣ Vegano\n4️⃣ Sin gluten\n5️⃣ Otra`
+          };
+          return {
+            message: invalidDietaryMessage[guest.language] || invalidDietaryMessage['EN'],
+            tokens: 0,
+            isOnboarding: true,
+            step: currentStep
+          };
+        }
+        
+        progress.data.dietary = selectedDietary;
         progress.step++;
         break;
 
