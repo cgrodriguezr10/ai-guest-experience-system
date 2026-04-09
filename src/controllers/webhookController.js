@@ -89,6 +89,11 @@ exports.receiveMessage = async (req, res) => {
 
         console.log(`✅ Language changed to: ${newLanguage}`);
 
+        // Guardar cambio de idioma en BD
+        await GuestService.updateGuest(guest.id, {
+          language: newLanguage
+        });
+
         let message;
         if (!guest.onboarding_completed) {
           const onboardingResponse = OnboardingService.getStepQuestion(guest);
@@ -171,7 +176,7 @@ exports.receiveMessage = async (req, res) => {
       });
     }
 
-    console.log(`✅ Onboarding complete - Guest name: ${guest.name}`);
+    console.log(`✅ Onboarding complete - Guest name: ${guest.name}, Language: ${guest.language}`);
 
     // ⭐ FILTRAR MENSAJES IRRELEVANTES
     const classification = MessageClassifierService.classifyMessage(Body);
