@@ -57,6 +57,7 @@ class Database {
         dietary_preferences VARCHAR(255),
         interests TEXT,
         onboarding_completed BOOLEAN DEFAULT FALSE,
+        waiting_for_language_change BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,

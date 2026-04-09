@@ -40,7 +40,6 @@ exports.receiveMessage = async (req, res) => {
     }
 
     // Detectar idioma SOLO si onboarding NO ha empezado
-    // Una vez que el usuario elige idioma, se bloquea hasta completar onboarding
     if (!OnboardingService.getProgress(guest.id) && !guest.onboarding_completed) {
       guest.language = detectMessageLanguage(Body);
     }
@@ -59,6 +58,13 @@ exports.receiveMessage = async (req, res) => {
       
       console.log(`💬 Language Change Options: ${message}`);
 
+      // Guardar en BD que está esperando cambio de idioma
+      await GuestService.updateGuest(guest.id, {
+        waiting_for_language_change: true
+      });
+
+      guest.waiting_for_language_change = true;
+
       await InteractionService.saveInteraction({
         guest_id: guest.id,
         incoming_message: Body,
@@ -69,8 +75,6 @@ exports.receiveMessage = async (req, res) => {
 
       await WhatsAppService.sendMessage(From, message);
 
-      guest.waiting_for_language_change = true;
-
       return res.status(200).json({ 
         success: true,
         type: 'language_change_request'
@@ -78,20 +82,20 @@ exports.receiveMessage = async (req, res) => {
     }
 
     // ⭐ SI ESTÁ ESPERANDO RESPUESTA DE CAMBIO DE IDIOMA
-    if (guest.waiting_for_language_change) {
+    if (guest.waiting_for_language_change === true) {
       const trimmedResponse = Body.trim().toLowerCase();
       const langMap = { '1': 'EN', '2': 'ES' };
       const newLanguage = langMap[trimmedResponse];
 
       if (newLanguage) {
         guest.language = newLanguage;
-        guest.waiting_for_language_change = false;
 
         console.log(`✅ Language changed to: ${newLanguage}`);
 
         // Guardar cambio de idioma en BD
         await GuestService.updateGuest(guest.id, {
-          language: newLanguage
+          language: newLanguage,
+          waiting_for_language_change: false
         });
 
         let message;
