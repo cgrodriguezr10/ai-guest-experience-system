@@ -170,6 +170,7 @@ What would you like to know?`,
     
     const changeLanguageKeywords = [
       'change language',
+      'change lenguage',
       'cambiar idioma',
       'cambiar lenguaje',
       'change idioma',
