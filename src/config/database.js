@@ -74,13 +74,14 @@ class Database {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
 
-      // Tabla de reservas
-      `CREATE TABLE IF NOT EXISTS reservations (
+      // Tabla de reservas de servicios/productos
+      `CREATE TABLE IF NOT EXISTS catalog_orders (
         id SERIAL PRIMARY KEY,
         guest_id INT REFERENCES guests(id),
-        hotel_id INT REFERENCES hotels(id),
-        reservation_type VARCHAR(100),
-        details JSONB,
+        product_id INT REFERENCES catalog_products(id),
+        quantity INT DEFAULT 1,
+        price DECIMAL(10, 2),
+        notes TEXT,
         status VARCHAR(50),
         confirmation_code VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -111,16 +112,35 @@ class Database {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
 
-      // ⭐ NUEVA: Tabla de órdenes/reservas de productos
-      `CREATE TABLE IF NOT EXISTS catalog_orders (
+      // ⭐ NUEVA: Tabla de habitaciones (ROOMS)
+      `CREATE TABLE IF NOT EXISTS rooms (
+        id SERIAL PRIMARY KEY,
+        room_number VARCHAR(10) UNIQUE NOT NULL,
+        room_type VARCHAR(100) NOT NULL,
+        description TEXT,
+        price_per_night DECIMAL(10, 2),
+        max_guests INT DEFAULT 2,
+        amenities TEXT,
+        hotel_id INT REFERENCES hotels(id),
+        availability_status VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // ⭐ NUEVA: Tabla de reservas de habitaciones
+      `CREATE TABLE IF NOT EXISTS room_reservations (
         id SERIAL PRIMARY KEY,
         guest_id INT REFERENCES guests(id),
-        product_id INT REFERENCES catalog_products(id),
-        quantity INT DEFAULT 1,
-        price DECIMAL(10, 2),
-        notes TEXT,
+        room_id INT REFERENCES rooms(id),
+        check_in DATE NOT NULL,
+        check_out DATE NOT NULL,
+        number_of_nights INT,
+        total_price DECIMAL(10, 2),
         status VARCHAR(50),
         confirmation_code VARCHAR(50),
+        payment_status VARCHAR(50),
+        payment_link TEXT,
+        notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`
@@ -151,10 +171,11 @@ class Database {
 
   static async reset() {
     try {
+      await pool.query('DROP TABLE IF EXISTS room_reservations CASCADE');
+      await pool.query('DROP TABLE IF EXISTS rooms CASCADE');
       await pool.query('DROP TABLE IF EXISTS catalog_orders CASCADE');
       await pool.query('DROP TABLE IF EXISTS catalog_products CASCADE');
       await pool.query('DROP TABLE IF EXISTS catalog_categories CASCADE');
-      await pool.query('DROP TABLE IF EXISTS reservations CASCADE');
       await pool.query('DROP TABLE IF EXISTS interactions CASCADE');
       await pool.query('DROP TABLE IF EXISTS guests CASCADE');
       await pool.query('DROP TABLE IF EXISTS hotels CASCADE');
