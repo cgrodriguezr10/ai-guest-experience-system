@@ -74,6 +74,30 @@ class Database {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
 
+      // Tabla de categorías de catálogo
+      `CREATE TABLE IF NOT EXISTS catalog_categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(50),
+        hotel_id INT REFERENCES hotels(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // Tabla de productos
+      `CREATE TABLE IF NOT EXISTS catalog_products (
+        id SERIAL PRIMARY KEY,
+        category_id INT REFERENCES catalog_categories(id),
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2),
+        image_url TEXT,
+        availability BOOLEAN DEFAULT TRUE,
+        hotel_id INT REFERENCES hotels(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
       // Tabla de reservas de servicios/productos
       `CREATE TABLE IF NOT EXISTS catalog_orders (
         id SERIAL PRIMARY KEY,
@@ -88,31 +112,7 @@ class Database {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
 
-      // ⭐ NUEVA: Tabla de categorías de catálogo
-      `CREATE TABLE IF NOT EXISTS catalog_categories (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        icon VARCHAR(50),
-        hotel_id INT REFERENCES hotels(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`,
-
-      // ⭐ NUEVA: Tabla de productos
-      `CREATE TABLE IF NOT EXISTS catalog_products (
-        id SERIAL PRIMARY KEY,
-        category_id INT REFERENCES catalog_categories(id),
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2),
-        image_url TEXT,
-        availability BOOLEAN DEFAULT TRUE,
-        hotel_id INT REFERENCES hotels(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`,
-
-      // ⭐ NUEVA: Tabla de habitaciones (ROOMS)
+      // Tabla de habitaciones (ROOMS)
       `CREATE TABLE IF NOT EXISTS rooms (
         id SERIAL PRIMARY KEY,
         room_number VARCHAR(10) UNIQUE NOT NULL,
@@ -127,7 +127,7 @@ class Database {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
 
-      // ⭐ NUEVA: Tabla de reservas de habitaciones
+      // Tabla de reservas de habitaciones
       `CREATE TABLE IF NOT EXISTS room_reservations (
         id SERIAL PRIMARY KEY,
         guest_id INT REFERENCES guests(id),
@@ -143,6 +143,25 @@ class Database {
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // ⭐ NUEVA: Tabla de órdenes de recepción
+      `CREATE TABLE IF NOT EXISTS reception_orders (
+        id SERIAL PRIMARY KEY,
+        guest_id INT REFERENCES guests(id),
+        order_type VARCHAR(100) NOT NULL,
+        confirmation_code VARCHAR(50),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        guest_name VARCHAR(255),
+        guest_room VARCHAR(50),
+        guest_phone VARCHAR(50),
+        priority VARCHAR(50),
+        status VARCHAR(50),
+        assigned_to VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP
       )`
     ];
 
@@ -171,6 +190,7 @@ class Database {
 
   static async reset() {
     try {
+      await pool.query('DROP TABLE IF EXISTS reception_orders CASCADE');
       await pool.query('DROP TABLE IF EXISTS room_reservations CASCADE');
       await pool.query('DROP TABLE IF EXISTS rooms CASCADE');
       await pool.query('DROP TABLE IF EXISTS catalog_orders CASCADE');

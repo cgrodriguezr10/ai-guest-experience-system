@@ -48,6 +48,8 @@ async function initializeApp() {
     app.use('/api/guests', guestRoutes);
     app.use('/api/interactions', interactionRoutes);
     app.use('/api/reception', receptionRoutes);
+const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
+    app.use('/api/pms', pmsIntegrationRoutes);
 
     // Health check
     app.get('/health', (req, res) => {
