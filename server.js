@@ -125,3 +125,9 @@ const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
 initializeApp();
 
 module.exports = app;
+// START SERVER
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 WhatsApp Webhook: https://ai-guest-experience-system.onrender.com/webhook`);
+});
