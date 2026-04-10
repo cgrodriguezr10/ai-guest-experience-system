@@ -6,6 +6,7 @@ const Database = require('./src/config/database');
 const webhookBusinessController = require('./src/controllers/webhookBusinessController');
 const guestRoutes = require('./src/routes/guestRoutes');
 const interactionRoutes = require('./src/routes/interactionRoutes');
+const receptionRoutes = require('./src/routes/receptionRoutes');
 
 const app = express();
 const PORT = environment.PORT || 3000;
@@ -34,7 +35,7 @@ async function initializeApp() {
   try {
     await Database.initialize();
     
-    // ⭐ WHATSAPP BUSINESS WEBHOOK (reemplaza Twilio)
+    // ⭐ WHATSAPP BUSINESS WEBHOOK
     app.get('/webhook', (req, res) => {
       webhookBusinessController.handleWebhook(req, res);
     });
@@ -46,6 +47,7 @@ async function initializeApp() {
     // Routes
     app.use('/api/guests', guestRoutes);
     app.use('/api/interactions', interactionRoutes);
+    app.use('/api/reception', receptionRoutes);
 
     // Health check
     app.get('/health', (req, res) => {
@@ -67,7 +69,8 @@ async function initializeApp() {
           webhook: '/webhook',
           health: '/health',
           guests: '/api/guests',
-          interactions: '/api/interactions'
+          interactions: '/api/interactions',
+          reception: '/api/reception'
         }
       });
     });

@@ -7,6 +7,7 @@ const GalleryService = require('../services/galleryService');
 const ReservationFlowService = require('../services/reservationFlowService');
 const HotelRoomsService = require('../services/hotelRoomsService');
 const PaymentGatewaySimulator = require('../services/paymentGatewaySimulator');
+const ReceptionService = require('../services/receptionService');
 const WhatsAppBusiness = require('../config/whatsappBusiness');
 
 function detectMessageLanguage(message) {
@@ -34,7 +35,7 @@ exports.handleWebhook = async (req, res) => {
   try {
     const body = req.body;
 
-    // Webhook verification (primera vez que Meta conecta)
+    // Webhook verification
     if (req.method === 'GET') {
       const mode = req.query['hub.mode'];
       const token = req.query['hub.verify_token'];
@@ -61,7 +62,6 @@ exports.handleWebhook = async (req, res) => {
         }
       }
 
-      // Marcar como recibido
       return res.status(200).json({ status: 'ok' });
     }
 
@@ -86,7 +86,7 @@ async function processMessage(messageData) {
       console.log(`👤 New guest created: ${guest.id}`);
     }
 
-    // Detectar idioma solo si onboarding NO ha empezado
+    // Detectar idioma
     if (!OnboardingService.getProgress(guest.id) && !guest.onboarding_completed) {
       guest.language = detectMessageLanguage(body);
       await GuestService.updateGuest(guest.id, { language: guest.language });
@@ -253,24 +253,35 @@ async function processMessage(messageData) {
 
           await WhatsAppBusiness.sendMessage(from, paymentMessage);
         }
+
+        // ⭐ CREAR ORDEN PARA RECEPCIÓN
+        await ReceptionService.createReceptionOrder({
+          guest_id: guest.id,
+          type: 'service_reservation',
+          confirmation_code: result.confirmationCode,
+          title: `Reserva de ${reservationState.product.name}`,
+          description: `${guest.name} (Hab ${guest.room_number}): ${reservationState.product.name} x${reservationState.quantity}. Código: ${result.confirmationCode}`,
+          guest_name: guest.name,
+          guest_room: guest.room_number,
+          guest_phone: guest.phone,
+          priority: 'normal'
+        });
       }
 
       return;
     }
 
-    // ⭐ VERIFICAR SI USUARIO QUIERE VER HABITACIONES DISPONIBLES
+    // ⭐ VERIFICAR SI USUARIO QUIERE VER HABITACIONES
     const roomKeywords = ['habitación', 'room', 'disponibilidad', 'availability', 'dónde alojo', 'where to stay', 'cuartos disponibles', 'available rooms'];
     const wantsRooms = roomKeywords.some(keyword => body.toLowerCase().includes(keyword));
 
     if (wantsRooms) {
       console.log(`🏨 Room inquiry from guest ${guest.id}`);
       
-      // Solicitar fechas
       const askDatesMessage = guest.language === 'ES'
         ? `🏨 RESERVA DE HABITACIÓN\n\n¿Cuál es tu fecha de check-in?\n(Formato: DD/MM/YYYY, ej: 15/04/2026)`
         : `🏨 ROOM RESERVATION\n\nWhat is your check-in date?\n(Format: DD/MM/YYYY, e.g: 15/04/2026)`;
 
-      // Guardar estado de consulta de habitaciones
       ReservationFlowService.reservationStates[guest.id] = {
         step: 'ask_checkin_date',
         type: 'room',
@@ -292,7 +303,6 @@ async function processMessage(messageData) {
     // ⭐ PROCESAR FECHAS PARA HABITACIONES
     const roomState = ReservationFlowService.reservationStates[guest.id];
     if (roomState && roomState.type === 'room' && roomState.step === 'ask_checkin_date') {
-      // Guardar check-in
       roomState.check_in = body;
       roomState.step = 'ask_checkout_date';
 
@@ -305,7 +315,6 @@ async function processMessage(messageData) {
     }
 
     if (roomState && roomState.type === 'room' && roomState.step === 'ask_checkout_date') {
-      // Obtener disponibilidad
       roomState.check_out = body;
 
       const availabilityMessage = await HotelRoomsService.getAvailabilityMessage(
@@ -321,7 +330,6 @@ async function processMessage(messageData) {
     }
 
     if (roomState && roomState.type === 'room' && roomState.step === 'select_room') {
-      // Procesar selección de habitación
       const roomNumber = `10${body}`;
       const roomDetails = await HotelRoomsService.getRoomDetails(roomNumber);
 
@@ -333,7 +341,6 @@ async function processMessage(messageData) {
         return;
       }
 
-      // Mostrar detalles y pedir confirmación
       const roomDetailsMessage = guest.language === 'ES'
         ? `✅ ${roomDetails.room_type} (${roomNumber})\n\n💰 $${roomDetails.price_per_night}/noche\n📝 ${roomDetails.description}\n\n¿Deseas reservar?\n1️⃣ Sí\n2️⃣ No`
         : `✅ ${roomDetails.room_type} (${roomNumber})\n\n💰 $${roomDetails.price_per_night}/night\n📝 ${roomDetails.description}\n\nDo you want to book?\n1️⃣ Yes\n2️⃣ No`;
@@ -349,22 +356,19 @@ async function processMessage(messageData) {
       const response = body.trim().toLowerCase();
 
       if (response === '1' || response === 'yes' || response === 'sí') {
-        // Crear reserva de habitación
         const confirmationCode = HotelRoomsService.generateConfirmationCode();
         
-        // Guardar en BD
         await HotelRoomsService.saveRoomReservation({
           guest_id: guest.id,
           room_id: parseInt(roomState.selected_room) - 100,
           check_in: roomState.check_in,
           check_out: roomState.check_out,
-          number_of_nights: 3, // Simulado
-          total_price: 360, // Simulado
+          number_of_nights: 3,
+          total_price: 360,
           confirmation_code: confirmationCode,
           notes: null
         });
 
-        // Generar enlace de pago
         const paymentResult = await PaymentGatewaySimulator.generatePaymentLink({
           confirmation_code: confirmationCode,
           amount: 360,
@@ -392,6 +396,19 @@ async function processMessage(messageData) {
 
           await WhatsAppBusiness.sendMessage(from, paymentMessage);
         }
+
+        // ⭐ CREAR ORDEN PARA RECEPCIÓN
+        await ReceptionService.createReceptionOrder({
+          guest_id: guest.id,
+          type: 'room_reservation',
+          confirmation_code: confirmationCode,
+          title: `Nueva reserva de habitación`,
+          description: `${guest.name}: Habitación ${roomState.selected_room}, Check-in: ${roomState.check_in}, Check-out: ${roomState.check_out}. Total: $360. Código: ${confirmationCode}`,
+          guest_name: guest.name,
+          guest_room: roomState.selected_room,
+          guest_phone: guest.phone,
+          priority: 'normal'
+        });
 
         delete ReservationFlowService.reservationStates[guest.id];
       } else {
