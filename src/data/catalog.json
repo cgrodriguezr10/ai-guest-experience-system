@@ -1,0 +1,241 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Restaurante",
+      "description": "Delicious dishes from our kitchen",
+      "icon": "🍽️",
+      "products": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    },
+    {
+      "id": 2,
+      "name": "Spa & Wellness",
+      "description": "Relax and rejuvenate",
+      "icon": "🧖‍♀️",
+      "products": [11, 12, 13, 14, 15]
+    },
+    {
+      "id": 3,
+      "name": "Gym & Fitness",
+      "description": "Stay fit during your stay",
+      "icon": "💪",
+      "products": [16, 17, 18]
+    },
+    {
+      "id": 4,
+      "name": "Activities",
+      "description": "Explore Bogotá",
+      "icon": "🎭",
+      "products": [19, 20, 21, 22, 23]
+    }
+  ],
+  "products": {
+    "1": {
+      "id": 1,
+      "categoryId": 1,
+      "name": "Ajiaco Santafereño",
+      "description": "Traditional Colombian soup",
+      "price": 12,
+      "image_url": null,
+      "availability": true
+    },
+    "2": {
+      "id": 2,
+      "categoryId": 1,
+      "name": "Bandeja Paisa",
+      "description": "Complete Colombian plate",
+      "price": 18,
+      "image_url": null,
+      "availability": true
+    },
+    "3": {
+      "id": 3,
+      "categoryId": 1,
+      "name": "Ceviche",
+      "description": "Fresh seafood ceviche",
+      "price": 16,
+      "image_url": null,
+      "availability": true
+    },
+    "4": {
+      "id": 4,
+      "categoryId": 1,
+      "name": "Empanadas",
+      "description": "Crispy empanadas (3 units)",
+      "price": 5,
+      "image_url": null,
+      "availability": true
+    },
+    "5": {
+      "id": 5,
+      "categoryId": 1,
+      "name": "Sancocho",
+      "description": "Hearty stew",
+      "price": 14,
+      "image_url": null,
+      "availability": true
+    },
+    "6": {
+      "id": 6,
+      "categoryId": 1,
+      "name": "Arepa",
+      "description": "Traditional corn arepa",
+      "price": 4,
+      "image_url": null,
+      "availability": true
+    },
+    "7": {
+      "id": 7,
+      "categoryId": 1,
+      "name": "Grilled Fish",
+      "description": "Fresh fish with coconut rice",
+      "price": 22,
+      "image_url": null,
+      "availability": true
+    },
+    "8": {
+      "id": 8,
+      "categoryId": 1,
+      "name": "Flan",
+      "description": "Creamy dessert",
+      "price": 8,
+      "image_url": null,
+      "availability": true
+    },
+    "9": {
+      "id": 9,
+      "categoryId": 1,
+      "name": "Patacones",
+      "description": "Fried plantains",
+      "price": 6,
+      "image_url": null,
+      "availability": true
+    },
+    "10": {
+      "id": 10,
+      "categoryId": 1,
+      "name": "Hot Chocolate with Cheese",
+      "description": "Traditional hot beverage",
+      "price": 7,
+      "image_url": null,
+      "availability": true
+    },
+    "11": {
+      "id": 11,
+      "categoryId": 2,
+      "name": "Swedish Massage",
+      "description": "60 minutes full body",
+      "price": 75,
+      "image_url": null,
+      "availability": true
+    },
+    "12": {
+      "id": 12,
+      "categoryId": 2,
+      "name": "Facial Treatment",
+      "description": "Deep cleansing facial",
+      "price": 65,
+      "image_url": null,
+      "availability": true
+    },
+    "13": {
+      "id": 13,
+      "categoryId": 2,
+      "name": "Hot Stone Massage",
+      "description": "90 minutes therapeutic",
+      "price": 95,
+      "image_url": null,
+      "availability": true
+    },
+    "14": {
+      "id": 14,
+      "categoryId": 2,
+      "name": "Manicure & Pedicure",
+      "description": "Complete nail care",
+      "price": 45,
+      "image_url": null,
+      "availability": true
+    },
+    "15": {
+      "id": 15,
+      "categoryId": 2,
+      "name": "Aromatherapy Session",
+      "description": "45 minutes relaxation",
+      "price": 55,
+      "image_url": null,
+      "availability": true
+    },
+    "16": {
+      "id": 16,
+      "categoryId": 3,
+      "name": "Personal Training",
+      "description": "1 hour session",
+      "price": 50,
+      "image_url": null,
+      "availability": true
+    },
+    "17": {
+      "id": 17,
+      "categoryId": 3,
+      "name": "Gym Membership",
+      "description": "Daily access",
+      "price": 25,
+      "image_url": null,
+      "availability": true
+    },
+    "18": {
+      "id": 18,
+      "categoryId": 3,
+      "name": "Yoga Class",
+      "description": "60 minutes session",
+      "price": 35,
+      "image_url": null,
+      "availability": true
+    },
+    "19": {
+      "id": 19,
+      "categoryId": 4,
+      "name": "Gold Museum",
+      "description": "World-class museum",
+      "price": 18,
+      "image_url": null,
+      "availability": true
+    },
+    "20": {
+      "id": 20,
+      "categoryId": 4,
+      "name": "Monserrate Tour",
+      "description": "Sacred mountain visit",
+      "price": 25,
+      "image_url": null,
+      "availability": true
+    },
+    "21": {
+      "id": 21,
+      "categoryId": 4,
+      "name": "La Candelaria Walking Tour",
+      "description": "Historic district exploration",
+      "price": 30,
+      "image_url": null,
+      "availability": true
+    },
+    "22": {
+      "id": 22,
+      "categoryId": 4,
+      "name": "Botanical Garden",
+      "description": "Beautiful gardens",
+      "price": 12,
+      "image_url": null,
+      "availability": true
+    },
+    "23": {
+      "id": 23,
+      "categoryId": 4,
+      "name": "Coffee Tour",
+      "description": "Colombian coffee plantation",
+      "price": 65,
+      "image_url": null,
+      "availability": true
+    }
+  }
+}
