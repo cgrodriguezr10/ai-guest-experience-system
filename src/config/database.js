@@ -85,6 +85,44 @@ class Database {
         confirmation_code VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // ⭐ NUEVA: Tabla de categorías de catálogo
+      `CREATE TABLE IF NOT EXISTS catalog_categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(50),
+        hotel_id INT REFERENCES hotels(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // ⭐ NUEVA: Tabla de productos
+      `CREATE TABLE IF NOT EXISTS catalog_products (
+        id SERIAL PRIMARY KEY,
+        category_id INT REFERENCES catalog_categories(id),
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2),
+        image_url TEXT,
+        availability BOOLEAN DEFAULT TRUE,
+        hotel_id INT REFERENCES hotels(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // ⭐ NUEVA: Tabla de órdenes/reservas de productos
+      `CREATE TABLE IF NOT EXISTS catalog_orders (
+        id SERIAL PRIMARY KEY,
+        guest_id INT REFERENCES guests(id),
+        product_id INT REFERENCES catalog_products(id),
+        quantity INT DEFAULT 1,
+        price DECIMAL(10, 2),
+        notes TEXT,
+        status VARCHAR(50),
+        confirmation_code VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`
     ];
 
@@ -113,6 +151,9 @@ class Database {
 
   static async reset() {
     try {
+      await pool.query('DROP TABLE IF EXISTS catalog_orders CASCADE');
+      await pool.query('DROP TABLE IF EXISTS catalog_products CASCADE');
+      await pool.query('DROP TABLE IF EXISTS catalog_categories CASCADE');
       await pool.query('DROP TABLE IF EXISTS reservations CASCADE');
       await pool.query('DROP TABLE IF EXISTS interactions CASCADE');
       await pool.query('DROP TABLE IF EXISTS guests CASCADE');

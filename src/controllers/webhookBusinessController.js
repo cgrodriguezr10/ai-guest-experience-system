@@ -3,6 +3,7 @@ const GuestService = require('../services/guestService');
 const InteractionService = require('../services/interactionService');
 const MessageClassifierService = require('../services/messageClassifierService');
 const OnboardingService = require('../services/onboardingService');
+const GalleryService = require('../services/galleryService');
 const WhatsAppBusiness = require('../config/whatsappBusiness');
 
 function detectMessageLanguage(message) {
@@ -201,6 +202,27 @@ async function processMessage(messageData) {
     }
 
     console.log(`✅ Onboarding complete - Guest name: ${guest.name}, Language: ${guest.language}`);
+
+    // ⭐ VERIFICAR SI USUARIO QUIERE VER CATÁLOGO/GALERÍA
+    const catalogKeywords = ['catálogo', 'catalog', 'menu', 'menú', 'servicios', 'services', 'qué ofreces', 'what do you offer', 'galería', 'gallery', 'restaurante', 'restaurant', 'spa', 'gym', 'actividades', 'activities'];
+    const wantsCatalog = catalogKeywords.some(keyword => body.toLowerCase().includes(keyword));
+
+    if (wantsCatalog) {
+      console.log(`📚 Gallery request from guest ${guest.id}`);
+      
+      const galleryMessage = await GalleryService.getCategoriesGallery(guest.language);
+
+      await InteractionService.saveInteraction({
+        guest_id: guest.id,
+        incoming_message: body,
+        outgoing_message: galleryMessage,
+        message_type: 'gallery_request',
+        tokens_used: 0
+      });
+
+      await WhatsAppBusiness.sendMessage(from, galleryMessage);
+      return;
+    }
 
     // ⭐ FILTRAR MENSAJES IRRELEVANTES
     const classification = MessageClassifierService.classifyMessage(body);
