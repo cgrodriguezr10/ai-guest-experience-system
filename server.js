@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const environment = require('./src/config/environment');
 const Database = require('./src/config/database');
-const webhookRoutes = require('./src/routes/webhookRoutes');
+const webhookBusinessController = require('./src/controllers/webhookBusinessController');
 const guestRoutes = require('./src/routes/guestRoutes');
 const interactionRoutes = require('./src/routes/interactionRoutes');
 
@@ -18,6 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║     AI GUEST EXPERIENCE SYSTEM - Starting Server       ║
+║            WhatsApp Business Cloud API                 ║
 ╚════════════════════════════════════════════════════════╝
 `);
 
@@ -26,14 +27,23 @@ console.log(`📍 Port: ${PORT}`);
 console.log(`🏨 Hotel: The Plaza Hotel`);
 console.log(`🗣️  Language: ES`);
 console.log(`🕐 Timezone: America/Bogota`);
+console.log(`📱 Platform: WhatsApp Business Cloud API`);
 
 // Initialize Database
 async function initializeApp() {
   try {
     await Database.initialize();
     
+    // ⭐ WHATSAPP BUSINESS WEBHOOK (reemplaza Twilio)
+    app.get('/webhook', (req, res) => {
+      webhookBusinessController.handleWebhook(req, res);
+    });
+
+    app.post('/webhook', (req, res) => {
+      webhookBusinessController.handleWebhook(req, res);
+    });
+
     // Routes
-    app.use('/webhook', webhookRoutes);
     app.use('/api/guests', guestRoutes);
     app.use('/api/interactions', interactionRoutes);
 
@@ -42,7 +52,8 @@ async function initializeApp() {
       res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        service: 'AI Guest Experience System'
+        service: 'AI Guest Experience System',
+        platform: 'WhatsApp Business Cloud API'
       });
     });
 
@@ -51,6 +62,7 @@ async function initializeApp() {
       res.json({
         service: 'AI Guest Experience System',
         version: '1.0.0',
+        platform: 'WhatsApp Business Cloud API',
         endpoints: {
           webhook: '/webhook',
           health: '/health',
@@ -58,6 +70,26 @@ async function initializeApp() {
           interactions: '/api/interactions'
         }
       });
+    });
+
+    // Reset endpoint (development only)
+    app.get('/webhook/reset-all', async (req, res) => {
+      try {
+        const GuestService = require('./src/services/guestService');
+        const OnboardingService = require('./src/services/onboardingService');
+        
+        GuestService.guests = {};
+        GuestService.guestCounter = 0;
+        OnboardingService.guestProgress = {};
+
+        res.json({
+          success: true,
+          message: 'All guests reset successfully',
+          guests_cleared: 0
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
     });
 
     // 404 Handler
@@ -77,6 +109,7 @@ async function initializeApp() {
       console.log(`📋 API Info: http://localhost:${PORT}/api/info`);
       console.log(`💚 Health Check: http://localhost:${PORT}/health`);
       console.log(`✨ Ready to receive WhatsApp messages!`);
+      console.log(`📱 Webhook: http://localhost:${PORT}/webhook`);
     });
   } catch (error) {
     console.error('❌ Failed to initialize application:', error);
