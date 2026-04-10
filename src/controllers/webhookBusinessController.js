@@ -4,6 +4,9 @@ const InteractionService = require('../services/interactionService');
 const MessageClassifierService = require('../services/messageClassifierService');
 const OnboardingService = require('../services/onboardingService');
 const GalleryService = require('../services/galleryService');
+const ReservationFlowService = require('../services/reservationFlowService');
+const HotelRoomsService = require('../services/hotelRoomsService');
+const PaymentGatewaySimulator = require('../services/paymentGatewaySimulator');
 const WhatsAppBusiness = require('../config/whatsappBusiness');
 
 function detectMessageLanguage(message) {
@@ -202,6 +205,204 @@ async function processMessage(messageData) {
     }
 
     console.log(`✅ Onboarding complete - Guest name: ${guest.name}, Language: ${guest.language}`);
+
+    // ⭐ VERIFICAR SI ESTÁ EN FLUJO DE RESERVA
+    const reservationState = ReservationFlowService.getReservationState(guest.id);
+    if (reservationState) {
+      console.log(`📦 Processing reservation flow for guest ${guest.id}`);
+      
+      const result = await ReservationFlowService.processReservationResponse(guest.id, body, guest.language);
+
+      if (!result.success) {
+        await WhatsAppBusiness.sendMessage(from, result.message);
+        return;
+      }
+
+      await InteractionService.saveInteraction({
+        guest_id: guest.id,
+        incoming_message: body,
+        outgoing_message: result.message,
+        message_type: 'reservation_flow',
+        tokens_used: 0
+      });
+
+      await WhatsAppBusiness.sendMessage(from, result.message);
+
+      // Si la reserva se confirmó, generar enlace de pago
+      if (result.confirmed && result.confirmationCode) {
+        console.log(`💳 Generating payment link for reservation ${result.confirmationCode}`);
+        
+        const paymentResult = await PaymentGatewaySimulator.generatePaymentLink({
+          confirmation_code: result.confirmationCode,
+          amount: reservationState.product.price * reservationState.quantity,
+          currency: 'USD',
+          type: 'service',
+          guest_name: guest.name,
+          guest_email: guest.phone,
+          guest_phone: guest.phone
+        });
+
+        if (paymentResult.success) {
+          const paymentMessage = PaymentGatewaySimulator.getPaymentMessage({
+            amount: reservationState.product.price * reservationState.quantity,
+            currency: 'USD',
+            type: 'service',
+            payment_link: paymentResult.payment_link,
+            confirmation_code: result.confirmationCode
+          }, guest.language);
+
+          await WhatsAppBusiness.sendMessage(from, paymentMessage);
+        }
+      }
+
+      return;
+    }
+
+    // ⭐ VERIFICAR SI USUARIO QUIERE VER HABITACIONES DISPONIBLES
+    const roomKeywords = ['habitación', 'room', 'disponibilidad', 'availability', 'dónde alojo', 'where to stay', 'cuartos disponibles', 'available rooms'];
+    const wantsRooms = roomKeywords.some(keyword => body.toLowerCase().includes(keyword));
+
+    if (wantsRooms) {
+      console.log(`🏨 Room inquiry from guest ${guest.id}`);
+      
+      // Solicitar fechas
+      const askDatesMessage = guest.language === 'ES'
+        ? `🏨 RESERVA DE HABITACIÓN\n\n¿Cuál es tu fecha de check-in?\n(Formato: DD/MM/YYYY, ej: 15/04/2026)`
+        : `🏨 ROOM RESERVATION\n\nWhat is your check-in date?\n(Format: DD/MM/YYYY, e.g: 15/04/2026)`;
+
+      // Guardar estado de consulta de habitaciones
+      ReservationFlowService.reservationStates[guest.id] = {
+        step: 'ask_checkin_date',
+        type: 'room',
+        language: guest.language
+      };
+
+      await InteractionService.saveInteraction({
+        guest_id: guest.id,
+        incoming_message: body,
+        outgoing_message: askDatesMessage,
+        message_type: 'room_inquiry',
+        tokens_used: 0
+      });
+
+      await WhatsAppBusiness.sendMessage(from, askDatesMessage);
+      return;
+    }
+
+    // ⭐ PROCESAR FECHAS PARA HABITACIONES
+    const roomState = ReservationFlowService.reservationStates[guest.id];
+    if (roomState && roomState.type === 'room' && roomState.step === 'ask_checkin_date') {
+      // Guardar check-in
+      roomState.check_in = body;
+      roomState.step = 'ask_checkout_date';
+
+      const askCheckoutMessage = guest.language === 'ES'
+        ? `✅ Check-in: ${body}\n\n¿Cuál es tu fecha de check-out?\n(Formato: DD/MM/YYYY)`
+        : `✅ Check-in: ${body}\n\nWhat is your check-out date?\n(Format: DD/MM/YYYY)`;
+
+      await WhatsAppBusiness.sendMessage(from, askCheckoutMessage);
+      return;
+    }
+
+    if (roomState && roomState.type === 'room' && roomState.step === 'ask_checkout_date') {
+      // Obtener disponibilidad
+      roomState.check_out = body;
+
+      const availabilityMessage = await HotelRoomsService.getAvailabilityMessage(
+        roomState.check_in,
+        roomState.check_out,
+        guest.language
+      );
+
+      roomState.step = 'select_room';
+
+      await WhatsAppBusiness.sendMessage(from, availabilityMessage);
+      return;
+    }
+
+    if (roomState && roomState.type === 'room' && roomState.step === 'select_room') {
+      // Procesar selección de habitación
+      const roomNumber = `10${body}`;
+      const roomDetails = await HotelRoomsService.getRoomDetails(roomNumber);
+
+      if (!roomDetails) {
+        const errorMessage = guest.language === 'ES'
+          ? '❌ Habitación no válida'
+          : '❌ Invalid room';
+        await WhatsAppBusiness.sendMessage(from, errorMessage);
+        return;
+      }
+
+      // Mostrar detalles y pedir confirmación
+      const roomDetailsMessage = guest.language === 'ES'
+        ? `✅ ${roomDetails.room_type} (${roomNumber})\n\n💰 $${roomDetails.price_per_night}/noche\n📝 ${roomDetails.description}\n\n¿Deseas reservar?\n1️⃣ Sí\n2️⃣ No`
+        : `✅ ${roomDetails.room_type} (${roomNumber})\n\n💰 $${roomDetails.price_per_night}/night\n📝 ${roomDetails.description}\n\nDo you want to book?\n1️⃣ Yes\n2️⃣ No`;
+
+      roomState.step = 'confirm_room';
+      roomState.selected_room = roomNumber;
+
+      await WhatsAppBusiness.sendMessage(from, roomDetailsMessage);
+      return;
+    }
+
+    if (roomState && roomState.type === 'room' && roomState.step === 'confirm_room') {
+      const response = body.trim().toLowerCase();
+
+      if (response === '1' || response === 'yes' || response === 'sí') {
+        // Crear reserva de habitación
+        const confirmationCode = HotelRoomsService.generateConfirmationCode();
+        
+        // Guardar en BD
+        await HotelRoomsService.saveRoomReservation({
+          guest_id: guest.id,
+          room_id: parseInt(roomState.selected_room) - 100,
+          check_in: roomState.check_in,
+          check_out: roomState.check_out,
+          number_of_nights: 3, // Simulado
+          total_price: 360, // Simulado
+          confirmation_code: confirmationCode,
+          notes: null
+        });
+
+        // Generar enlace de pago
+        const paymentResult = await PaymentGatewaySimulator.generatePaymentLink({
+          confirmation_code: confirmationCode,
+          amount: 360,
+          currency: 'USD',
+          type: 'room',
+          guest_name: guest.name,
+          guest_email: guest.phone,
+          guest_phone: guest.phone
+        });
+
+        const confirmationMessage = guest.language === 'ES'
+          ? `✅ RESERVA DE HABITACIÓN CONFIRMADA\n\n🏨 Habitación: ${roomState.selected_room}\n📅 Check-in: ${roomState.check_in}\n📅 Check-out: ${roomState.check_out}\n💵 Total: $360 USD\n🔐 Código: ${confirmationCode}`
+          : `✅ ROOM RESERVATION CONFIRMED\n\n🏨 Room: ${roomState.selected_room}\n📅 Check-in: ${roomState.check_in}\n📅 Check-out: ${roomState.check_out}\n💵 Total: $360 USD\n🔐 Code: ${confirmationCode}`;
+
+        await WhatsAppBusiness.sendMessage(from, confirmationMessage);
+
+        if (paymentResult.success) {
+          const paymentMessage = PaymentGatewaySimulator.getPaymentMessage({
+            amount: 360,
+            currency: 'USD',
+            type: 'room',
+            payment_link: paymentResult.payment_link,
+            confirmation_code: confirmationCode
+          }, guest.language);
+
+          await WhatsAppBusiness.sendMessage(from, paymentMessage);
+        }
+
+        delete ReservationFlowService.reservationStates[guest.id];
+      } else {
+        delete ReservationFlowService.reservationStates[guest.id];
+        const cancelMessage = guest.language === 'ES'
+          ? '❌ Reserva cancelada'
+          : '❌ Reservation cancelled';
+        await WhatsAppBusiness.sendMessage(from, cancelMessage);
+      }
+      return;
+    }
 
     // ⭐ VERIFICAR SI USUARIO QUIERE VER CATÁLOGO/GALERÍA
     const catalogKeywords = ['catálogo', 'catalog', 'menu', 'menú', 'servicios', 'services', 'qué ofreces', 'what do you offer', 'galería', 'gallery', 'restaurante', 'restaurant', 'spa', 'gym', 'actividades', 'activities'];
