@@ -1,21 +1,26 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const path = require('path');
-const environment = require('./src/config/environment');
-const Database = require('./src/config/database');
-const webhookBusinessController = require('./src/controllers/webhookBusinessController');
+const cors = require('cors');
+const axios = require('axios');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Importar rutas
+const webhookRoutes = require('./src/routes/webhookRoutes');
 const guestRoutes = require('./src/routes/guestRoutes');
 const interactionRoutes = require('./src/routes/interactionRoutes');
 const receptionRoutes = require('./src/routes/receptionRoutes');
+const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
 
-const app = express();
-const PORT = environment.PORT || 3000;
+// Importar servicios
+const aiService = require('./src/services/aiService');
+const { initializeDatabase } = require('./src/config/database');
 
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// ASCII Art Banner
+// Banner inicial
 console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║     AI GUEST EXPERIENCE SYSTEM - Starting Server       ║
@@ -23,32 +28,26 @@ console.log(`
 ╚════════════════════════════════════════════════════════╝
 `);
 
-console.log(`⚙️  Environment: ${environment.NODE_ENV}`);
-console.log(`📍 Port: ${PORT}`);
+console.log(`⚙️  Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`📍 Port: ${process.env.PORT || 3000}`);
 console.log(`🏨 Hotel: The Plaza Hotel`);
 console.log(`🗣️  Language: ES`);
 console.log(`🕐 Timezone: America/Bogota`);
 console.log(`📱 Platform: WhatsApp Business Cloud API`);
 
-// Initialize Database
+// Función de inicialización
 async function initializeApp() {
   try {
-    await Database.initialize();
-    
-    // ⭐ WHATSAPP BUSINESS WEBHOOK
-    app.get('/webhook', (req, res) => {
-      webhookBusinessController.handleWebhook(req, res);
-    });
+    console.log(`📊 Initializing PostgreSQL database...`);
+    await initializeDatabase();
+    console.log(`✅ Database connected`);
+    console.log(`✅ Database initialized with tables`);
 
-    app.post('/webhook', (req, res) => {
-      webhookBusinessController.handleWebhook(req, res);
-    });
-
-    // Routes
+    // Rutas de la aplicación
+    app.use('/webhook', webhookRoutes);
     app.use('/api/guests', guestRoutes);
     app.use('/api/interactions', interactionRoutes);
     app.use('/api/reception', receptionRoutes);
-const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
     app.use('/api/pms', pmsIntegrationRoutes);
 
     // Health check
@@ -68,36 +67,26 @@ const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
         version: '1.0.0',
         platform: 'WhatsApp Business Cloud API',
         endpoints: {
-          webhook: '/webhook',
           health: '/health',
+          webhook: '/webhook',
           guests: '/api/guests',
           interactions: '/api/interactions',
-          reception: '/api/reception'
+          reception: '/api/reception',
+          pms: '/api/pms'
         }
       });
     });
 
-    // Reset endpoint (development only)
-    app.get('/webhook/reset-all', async (req, res) => {
-      try {
-        const GuestService = require('./src/services/guestService');
-        const OnboardingService = require('./src/services/onboardingService');
-        
-        GuestService.guests = {};
-        GuestService.guestCounter = 0;
-        OnboardingService.guestProgress = {};
-
-        res.json({
-          success: true,
-          message: 'All guests reset successfully',
-          guests_cleared: 0
-        });
-      } catch (error) {
-        res.status(500).json({ error: error.message });
-      }
+    // Error handling
+    app.use((err, req, res, next) => {
+      console.error('❌ Error:', err);
+      res.status(500).json({
+        error: err.message,
+        statusCode: 500
+      });
     });
 
-    // 404 Handler
+    // 404 handler
     app.use((req, res) => {
       res.status(404).json({
         error: {
@@ -108,14 +97,12 @@ const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
       });
     });
 
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
-      console.log(`📋 API Info: http://localhost:${PORT}/api/info`);
-      console.log(`💚 Health Check: http://localhost:${PORT}/health`);
-      console.log(`✨ Ready to receive WhatsApp messages!`);
-      console.log(`📱 Webhook: http://localhost:${PORT}/webhook`);
-    });
+    console.log(`🚀 Server running at http://localhost:3000`);
+    console.log(`📋 API Info: http://localhost:3000/api/info`);
+    console.log(`💚 Health Check: http://localhost:3000/health`);
+    console.log(`✨ Ready to receive WhatsApp messages!`);
+    console.log(`📱 Webhook: http://localhost:3000/webhook`);
+
   } catch (error) {
     console.error('❌ Failed to initialize application:', error);
     process.exit(1);
@@ -123,8 +110,8 @@ const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
 }
 
 initializeApp();
-
 module.exports = app;
+
 // START SERVER
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
