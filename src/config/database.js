@@ -206,4 +206,11 @@ class Database {
   }
 }
 
-module.exports = Database;
+module.exports = {
+  Database,
+  initializeDatabase: async () => {
+    const db = new Database();
+    await db.initialize();
+    return db;
+  }
+};
