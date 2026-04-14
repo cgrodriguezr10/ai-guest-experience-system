@@ -16,9 +16,8 @@ const interactionRoutes = require('./src/routes/interactionRoutes');
 const receptionRoutes = require('./src/routes/receptionRoutes');
 const pmsIntegrationRoutes = require('./src/routes/pmsIntegrationRoutes');
 
-// Importar servicios
-const aiService = require('./src/services/aiService');
-const { initializeDatabase } = require('./src/config/database');
+// Importar Database
+const Database = require('./src/config/database');
 
 // Banner inicial
 console.log(`
@@ -30,7 +29,7 @@ console.log(`
 
 console.log(`⚙️  Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`📍 Port: ${process.env.PORT || 3000}`);
-console.log(`🏨 Hotel: The Plaza Hotel`);
+console.log(`🏨 Hotel: Colstar SAS`);
 console.log(`🗣️  Language: ES`);
 console.log(`🕐 Timezone: America/Bogota`);
 console.log(`📱 Platform: WhatsApp Business Cloud API`);
@@ -39,7 +38,11 @@ console.log(`📱 Platform: WhatsApp Business Cloud API`);
 async function initializeApp() {
   try {
     console.log(`📊 Initializing PostgreSQL database...`);
-    await initializeDatabase();
+    
+    // Inicializar Database
+    const db = new Database();
+    await db.initialize();
+    
     console.log(`✅ Database connected`);
     console.log(`✅ Database initialized with tables`);
 
@@ -66,6 +69,7 @@ async function initializeApp() {
         service: 'AI Guest Experience System',
         version: '1.0.0',
         platform: 'WhatsApp Business Cloud API',
+        business: 'Colstar SAS',
         endpoints: {
           health: '/health',
           webhook: '/webhook',
